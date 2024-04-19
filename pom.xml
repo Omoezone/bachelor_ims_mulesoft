@@ -74,7 +74,7 @@
 		<dependency>
 			<groupId>3a00c3c8-8406-46f3-897b-9b907b4f137b</groupId>
 			<artifactId>bachelorims</artifactId>
-			<version>1.0.7</version>
+			<version>1.0.8</version>
 			<classifier>raml</classifier>
 			<type>zip</type>
 		</dependency>
