@@ -1,0 +1,21 @@
+%dw 2.0
+
+type auto_c88abc52_041b_46da_8fd0_891ecb1918dd_Output_Payload = {
+  authToken: {
+    expiresIn: Number, 
+    tokenType: String, 
+    token: String, 
+    _?: Any
+  }, 
+  user: {
+    firstName: String, 
+    lastName: String, 
+    gender: String | Null, 
+    userId: Number, 
+    email: String, 
+    age: Number, 
+    _?: Any
+  }, 
+  _?: Any
+} {"description": "Authentication successful, returns user details and token."}
+

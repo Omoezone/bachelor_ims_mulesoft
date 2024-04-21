@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
-    <http:listener-config name="bachelorims-httpListenerConfig">
-        <http:listener-connection host="0.0.0.0" port="8081" />
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
+    <http:listener-config name="ims_specs-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8082" />
     </http:listener-config>
-    <apikit:config name="bachelorims-config" api="resource::3a00c3c8-8406-46f3-897b-9b907b4f137b:bachelorims:1.0.8:raml:zip:bachelorims.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
-    <flow name="bachelorims-main">
-        <http:listener config-ref="bachelorims-httpListenerConfig" path="/api/*">
+    <apikit:config name="ims_specs-config" api="resource::a1600366-34e7-452e-a23d-daddabc1e9c9:ims_specs:1.0.1:raml:zip:ims_specs.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <flow name="ims_specs-main">
+        <http:listener config-ref="ims_specs-httpListenerConfig" path="/api/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
                 <http:headers>#[vars.outboundHeaders default {}]</http:headers>
             </http:response>
@@ -14,7 +15,7 @@
                 <http:headers>#[vars.outboundHeaders default {}]</http:headers>
             </http:error-response>
         </http:listener>
-        <apikit:router config-ref="bachelorims-config" />
+        <apikit:router config-ref="ims_specs-config" />
         <error-handler>
             <on-error-propagate type="APIKIT:BAD_REQUEST">
                 <ee:transform doc:name="Transform Message">
@@ -96,8 +97,8 @@ output application/json
             </on-error-propagate>
         </error-handler>
     </flow>
-    <flow name="bachelorims-console">
-        <http:listener config-ref="bachelorims-httpListenerConfig" path="/console/*">
+    <flow name="ims_specs-console">
+        <http:listener config-ref="ims_specs-httpListenerConfig" path="/console/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
                 <http:headers>#[vars.outboundHeaders default {}]</http:headers>
             </http:response>
@@ -106,7 +107,7 @@ output application/json
                 <http:headers>#[vars.outboundHeaders default {}]</http:headers>
             </http:error-response>
         </http:listener>
-        <apikit:console config-ref="bachelorims-config" />
+        <apikit:console config-ref="ims_specs-config" />
         <error-handler>
             <on-error-propagate type="APIKIT:NOT_FOUND">
                 <ee:transform doc:name="Transform Message">
@@ -123,11 +124,11 @@ output application/json
             </on-error-propagate>
         </error-handler>
     </flow>
-    <flow name="get:\users:bachelorims-config">
-        <db:select doc:name="Select" doc:id="fcf9bf92-a28c-4d6a-96f4-b45a7f41e7b6" config-ref="Database_Config">
+    <flow name="get:\users:ims_specs-config">
+        <db:select doc:name="Select" doc:id="826e227e-77bf-44e1-8b91-db77e63efbf7" config-ref="Database_Config">
             <db:sql><![CDATA[SELECT * FROM ims.users]]></db:sql>
         </db:select>
-        <ee:transform doc:name="Transform Message" doc:id="933ee885-9752-4394-8751-094d42e4bef4">
+        <ee:transform doc:name="Transform Message" doc:id="e9d80ee4-be20-430d-bf9f-9897d980d085">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -143,23 +144,23 @@ payload map ( payload01 , indexOfPayload01 ) -> {
 }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-        <logger level="INFO" message="#[payload]" doc:name="Log select query response" />
+        <logger level="INFO" doc:name="Log select query response" doc:id="c754b5ce-7328-43c8-815f-be7d2ac41348" message="#[payload]" />
     </flow>
-    <flow name="get:\users\(userId):bachelorims-config">
-        <ee:transform doc:name="Transform Message">
+    <flow name="get:\users\(userId):ims_specs-config">
+        <ee:transform doc:name="Transform Message" doc:id="1ab55e1a-988a-490c-98d0-4eaff5acc07b">
             <ee:variables>
                 <ee:set-variable variableName="getOneUser"><![CDATA[attributes.uriParams.'userId']]></ee:set-variable>
             </ee:variables>
         </ee:transform>
-        <try doc:name="Try" doc:id="dd831567-ebed-443a-9602-455d2931c741">
-            <db:query-single doc:name="Query single" doc:id="82599a9a-c958-428c-b618-8b6574708a04" config-ref="Database_Config">
+        <try doc:name="Try" doc:id="41ecfad8-6e4d-463e-9e9a-3c2cf53773d7">
+            <db:query-single doc:name="Query single" doc:id="c37b68b7-15db-4b54-921a-c1e2ddf2701b" config-ref="Database_Config">
                 <db:sql><![CDATA[SELECT 	
 u.user_id, u.first_name, u.last_name, u.email, u.password, u.age, u.gender
 FROM users u
 WHERE u.user_id = :ID]]></db:sql>
                 <db:input-parameters><![CDATA[#[{ID: vars.getOneUser}]]]></db:input-parameters>
             </db:query-single>
-            <ee:transform doc:name="Transform Message">
+            <ee:transform doc:name="Transform Message" doc:id="cf87f228-f3a1-40c3-b398-ff8bbcd15f3e">
                 <ee:message>
                     <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -176,10 +177,13 @@ output application/json
                 </ee:message>
             </ee:transform>
         </try>
-        <logger level="INFO" doc:name="Logger" doc:id="897eff1d-9518-4149-8f29-f6f9190678d6" message="#[payload]" />
+        <logger level="INFO" doc:name="Logger" doc:id="3d4ce615-30ce-4c89-b026-f80f36858203" message="#[payload]" />
     </flow>
-    <flow name="post:\users:application\json:bachelorims-config">
-        <ee:transform doc:name="Transform Message">
+    <flow name="post:\users:application\json:ims_specs-config">
+        <java:invoke-static doc:name="Invoke static" doc:id="7efd98ca-09eb-4503-88c6-40b93badd31b" class="security.PasswordHasher" method="hashPassword(java.lang.String)" target="hashedPassword">
+			<java:args><![CDATA[#[arg0: payload.password]]]></java:args>
+		</java:invoke-static>
+		<ee:transform doc:name="Transform Message" doc:id="c2ae685a-9f83-44ae-a40b-fe144372d144">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -188,14 +192,15 @@ output application/json
   firstName: payload.firstName,
   lastName: payload.lastName,
   email: payload.email,
-  password: payload.password,
+  password: vars.hashedPassword,
   age: payload.age as Number,
   gender: payload.gender default null
 } as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-        <try doc:name="Try" doc:id="23c6de4e-8200-4e68-afe1-90f9fe3ac957">
-            <db:insert doc:name="Insert" doc:id="09ecfb2f-d654-4a4a-865d-9d252a3595cd" config-ref="Database_Config">
+		<logger level="INFO" doc:name="Logger" doc:id="e58396cc-1588-4fc6-9709-06d009ee0889" message="#[payload]"/>
+		<try doc:name="Try" doc:id="af31639c-152a-446e-bb0d-5a8912eee2bf">
+            <db:insert doc:name="Insert" doc:id="9472ee0d-8951-4b64-af80-55cbeaed2136" config-ref="Database_Config">
                 <db:sql><![CDATA[INSERT INTO `ims`.`users` (`first_name`, `last_name`, `email`, `password`, `age`, `gender`)
 VALUES
 (:FIRST_NAME, :LAST_NAME, :EMAIL, :PASSWORD, :AGE, :GENDER)]]></db:sql>
@@ -204,7 +209,7 @@ VALUES
 	AGE: payload.age, GENDER: payload.gender
 }]]]></db:input-parameters>
             </db:insert>
-            <ee:transform doc:name="Transform Message" doc:id="ed003981-aecd-4fc4-8c99-79e6b592884d">
+            <ee:transform doc:name="Transform Message" doc:id="00f54f62-3a3f-4103-b1c9-79ae19bfc661">
                 <ee:message>
                     <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -215,15 +220,15 @@ output application/json
                 </ee:message>
             </ee:transform>
         </try>
-        <logger level="INFO" doc:name="Logger" doc:id="6a7bcd32-92b3-4e82-b91e-62541602ee12" message="Successfully created user" />
+        <logger level="INFO" doc:name="Logger" doc:id="d8557ba6-5fb8-499b-aa6b-95d63ffda46e" message="Successfully created user" />
     </flow>
-    <flow name="put:\users\(userId):application\json:bachelorims-config">
-        <ee:transform doc:name="Transform Message">
+    <flow name="put:\users\(userId):application\json:ims_specs-config">
+        <ee:transform doc:name="Transform Message" doc:id="09d45ef9-5ee1-41a0-a73f-35dbccc7c6c0">
             <ee:variables>
                 <ee:set-variable variableName="updateUserId"><![CDATA[attributes.uriParams.'userId']]></ee:set-variable>
             </ee:variables>
         </ee:transform>
-        <ee:transform doc:name="Transform Message" doc:id="d3da4b9f-387e-4f50-b5f6-df3175de6fb1">
+        <ee:transform doc:name="Transform Message1" doc:id="8b3fa88a-4596-4157-9b9a-98a7c1e99806">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/java
@@ -239,8 +244,8 @@ output application/java
 }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-        <try doc:name="Try" doc:id="d270ec7e-0d07-4e15-9553-af1f8bb4494e">
-            <db:update doc:name="Update an existing user" doc:id="f8b5784c-b7d4-4f50-809f-46ceb25ddf59" config-ref="Database_Config">
+        <try doc:name="Try" doc:id="9510a0ad-5b1e-4eed-a19c-84d407af9e09">
+            <db:update doc:name="Update an existing user" doc:id="6d45d197-b16b-41d7-92b0-2f9326b35ea6" config-ref="Database_Config">
                 <db:sql><![CDATA[UPDATE `ims`.`users`
 SET
     `first_name` = :firstName,
@@ -260,7 +265,7 @@ WHERE `user_id` = :userId]]></db:sql>
 	gender: payload.gender
 }]]]></db:input-parameters>
             </db:update>
-            <ee:transform doc:name="Transform Message" doc:id="bddabb18-580b-416c-965f-4c23c6ec759a">
+            <ee:transform doc:name="Transform Message" doc:id="8021c4a9-4552-4069-9979-d54a154fe414">
                 <ee:message>
                     <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -271,20 +276,20 @@ output application/json
                 </ee:message>
             </ee:transform>
         </try>
-        <logger level="INFO" doc:name="Logger" doc:id="c06ade60-1e82-43c8-833b-fd38fba2ade6" message="Successfully updated user" />
+        <logger level="INFO" doc:name="Logger" doc:id="b039030f-12c8-4bc2-8e4a-9e24b40ee4d5" message="Successfully updated user" />
     </flow>
-    <flow name="delete:\users\(userId):bachelorims-config">
-        <ee:transform doc:name="Transform Message">
+    <flow name="delete:\users\(userId):ims_specs-config">
+        <ee:transform doc:name="Transform Message" doc:id="9a9d0214-fc14-4a61-a702-8268b8b36e05">
             <ee:variables>
                 <ee:set-variable variableName="deleteUserId"><![CDATA[attributes.uriParams.'userId']]></ee:set-variable>
             </ee:variables>
         </ee:transform>
-        <try doc:name="Try" doc:id="e66a8b8b-746b-4c92-8801-1ff36f6f3831">
-            <db:delete doc:name="Delete an user" doc:id="1ed4ad91-b9d6-4afb-ba8e-d3977b6745ef" config-ref="Database_Config">
+        <try doc:name="Try" doc:id="fd4492cc-9aa9-4c91-b9db-6fc4e4898fa1">
+            <db:delete doc:name="Delete an user" doc:id="098effcf-9125-4f6c-bc84-17b1741290a6" config-ref="Database_Config">
                 <db:sql><![CDATA[DELETE FROM users WHERE user_id = :USER_ID]]></db:sql>
                 <db:input-parameters><![CDATA[#[{USER_ID: vars.deleteUserId}]]]></db:input-parameters>
             </db:delete>
-            <ee:transform doc:name="Transform Message" doc:id="64478b11-1956-45fe-9f76-685d341285a5">
+            <ee:transform doc:name="Transform Message" doc:id="c56e638d-03ad-459c-bfbf-14691f8419db">
                 <ee:message>
                     <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -295,15 +300,15 @@ output application/json
                 </ee:message>
             </ee:transform>
         </try>
-        <logger level="INFO" message="delete:\users\(userId):bachelorims-config" />
+        <logger level="INFO" doc:name="Logger" doc:id="f2473eb0-72ae-4dec-8e92-29641facb259" message="delete:\users\(userId):bachelorims-config" />
     </flow>
-    <flow name="get:\items:bachelorims-config">
-        <logger level="INFO" message="get:\items:bachelorims-config" />
-        <try doc:name="Try" doc:id="460900b0-cf88-4357-a56d-51dca8b0510a">
-            <db:select doc:name="Select" doc:id="df825e59-2226-4d30-a875-c868c4087dc0" config-ref="Database_Config">
+    <flow name="get:\items:ims_specs-config">
+        <logger level="INFO" doc:name="Logger" doc:id="550979d7-8005-4df0-8977-5468d04f0d65" message="get:\items:bachelorims-config" />
+        <try doc:name="Try" doc:id="fcc30738-9812-488f-9bff-a78de76c8a1c">
+            <db:select doc:name="Select" doc:id="17b3cabb-4729-4275-9b91-416f3c09a565" config-ref="Database_Config">
                 <db:sql><![CDATA[SELECT * FROM items]]></db:sql>
             </db:select>
-            <ee:transform doc:name="Transform Message" doc:id="2a80cccb-918f-4f24-bd21-3d8926fb7bea">
+            <ee:transform doc:name="Transform Message" doc:id="b673d27d-566c-4c40-b92e-3566822095ca">
                 <ee:message>
                     <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -321,22 +326,22 @@ payload map ( payload01 , indexOfPayload01 ) -> {
                 </ee:message>
             </ee:transform>
         </try>
-        <logger level="INFO" doc:name="Logger" doc:id="a6ff0946-7ed1-4ac6-876c-c0aff2f1d6fc" message="Got all items" />
+        <logger level="INFO" doc:name="Logger1" doc:id="9bc39128-ecf4-4a07-b746-607beaeead7b" message="Got all items" />
     </flow>
-    <flow name="get:\items\(itemId):bachelorims-config">
-        <ee:transform doc:name="Transform Message">
+    <flow name="get:\items\(itemId):ims_specs-config">
+        <ee:transform doc:name="Transform Message" doc:id="a3c23be9-f47e-442c-b5e6-2a2dadf4291d">
             <ee:variables>
                 <ee:set-variable variableName="GetItemId"><![CDATA[attributes.uriParams.'itemId']]></ee:set-variable>
             </ee:variables>
         </ee:transform>
-        <try doc:name="Try" doc:id="56206572-1cf0-49f3-a63d-fccac5e861f4">
-            <db:query-single doc:name="Query single" doc:id="7d03d968-bd9d-468e-a016-1fe9a229a864" config-ref="Database_Config">
+        <try doc:name="Try" doc:id="4f6da256-ae62-4c6c-9714-7605fa69a6c3">
+            <db:query-single doc:name="Query single" doc:id="621dd80d-f6c8-4003-911c-ec45c3b98edf" config-ref="Database_Config">
                 <db:sql><![CDATA[SELECT i.item_id, i.name, i.price, i.amount, i.type, i.width, i.height, i.color, i.collection_id
 FROM items i
 WHERE i.item_id = :ID]]></db:sql>
                 <db:input-parameters><![CDATA[#[{ID: vars.GetItemId}]]]></db:input-parameters>
             </db:query-single>
-            <ee:transform doc:name="Transform Message" doc:id="ff90cb2f-31be-4c93-854f-33ae63e34b8e">
+            <ee:transform doc:name="Transform Message" doc:id="0c5fbe6f-597d-4fc3-a54f-66bba969548b">
                 <ee:message>
                     <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -355,11 +360,11 @@ output application/json
                 </ee:message>
             </ee:transform>
         </try>
-        <logger level="INFO" doc:name="Logger" doc:id="8667ba41-98cc-45d8-9b1a-e0b98c3c87b9" message="Successfully found an item" />
+        <logger level="INFO" doc:name="Logger" doc:id="dc799a07-1f0d-4094-bbc9-d06f07071a15" message="Successfully found an item" />
     </flow>
-    <flow name="post:\items:application\json:bachelorims-config">
-        <set-variable value="#[attributes.queryParams.'collectionId']" doc:name="Set Variable" doc:id="fe1f0a6d-0c82-46a4-95b4-2af21580e15d" variableName="PostItem" />
-        <ee:transform doc:name="Transform Message" doc:id="2008c912-3d4d-4844-ab17-d7906fc3160a">
+    <flow name="post:\items:application\json:ims_specs-config">
+        <set-variable value="#[attributes.queryParams.'collectionId']" doc:name="Set Variable" doc:id="6557c649-ad76-49aa-9057-93553693a9d4" variableName="PostItem" />
+        <ee:transform doc:name="Transform Message" doc:id="2af4a93b-16e4-4daf-90e3-111b4186dd98">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -375,8 +380,8 @@ output application/json
 } as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-        <try doc:name="Try" doc:id="2f6f404b-e752-4a79-a5a6-7f5c611631b9">
-            <db:insert doc:name="Insert" doc:id="7ea4e4ec-0838-4b4f-a4b3-ddd3eb3ed3d0" config-ref="Database_Config">
+        <try doc:name="Try" doc:id="c9668c2e-4324-4329-90db-17954f78b420">
+            <db:insert doc:name="Insert" doc:id="309de0a2-7286-4369-99b2-4a6737295419" config-ref="Database_Config">
                 <db:sql><![CDATA[INSERT INTO `ims`.`items` (`name`, `price`, `amount`, `type`, `width`, `height`, `color`, `collection_id`)
 VALUES
 (:NAME, :PRICE, :AMOUNT, :TYPE, :WIDTH, :HEIGHT, :COLOR, :COLLECTIONID)]]></db:sql>
@@ -386,7 +391,7 @@ VALUES
 	COLLECTIONID: vars.PostItem
 }]]]></db:input-parameters>
             </db:insert>
-            <ee:transform doc:name="Transform Message" doc:id="1378f9eb-eec5-4030-b8c5-5731ebcb974e">
+            <ee:transform doc:name="Transform Message" doc:id="0295eb8c-927b-4621-8945-47a875a07029">
                 <ee:message>
                     <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -397,11 +402,11 @@ output application/json
                 </ee:message>
             </ee:transform>
         </try>
-        <remove-variable doc:name="Remove Variable" doc:id="de6b9610-32cc-4b66-bd4e-7c66f4960bed" variableName="PostItem" />
+        <remove-variable doc:name="Remove Variable" doc:id="a5c587dd-c465-423a-a1d6-1c26fc5960d9" variableName="PostItem" />
     </flow>
-    <flow name="put:\items\(itemId):application\json:bachelorims-config">
-        <set-variable value="#[attributes.uriParams.'itemId']" doc:name="Set Variable" doc:id="78a6bf0d-7ff2-4e45-be38-fdb13d721fc1" variableName="updateItemId" />
-        <ee:transform doc:name="Transform Message1" doc:id="259ab432-0814-476d-b673-f0702c183070">
+    <flow name="put:\items\(itemId):application\json:ims_specs-config">
+        <set-variable value="#[attributes.uriParams.'itemId']" doc:name="Set Variable" doc:id="324ea670-48a1-4195-85e9-f53e858e6666" variableName="updateItemId" />
+        <ee:transform doc:name="Transform Message" doc:id="a2b67a33-8133-4bca-aec5-48e69173a6c8">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/java
@@ -418,8 +423,8 @@ output application/java
 }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-        <try doc:name="Try" doc:id="b62617fe-c789-448a-a0cd-eb51a3b43e6e">
-            <db:update doc:name="Update an existing user" doc:id="eaa41881-3fdc-4b89-9061-3e5467a48f9a" config-ref="Database_Config">
+        <try doc:name="Try" doc:id="8c33b5b8-ed1b-4ae9-9370-95c4373edbe3">
+            <db:update doc:name="Update an existing user" doc:id="a26d5d73-90a0-47e6-9ac1-2bbd81a63370" config-ref="Database_Config">
                 <db:sql><![CDATA[UPDATE items
 SET 
 	name = :NAME,
@@ -443,7 +448,7 @@ WHERE item_id = :ITEMID]]></db:sql>
 	ITEMID: vars.updateUserId
 }]]]></db:input-parameters>
             </db:update>
-            <ee:transform doc:name="Transform Message" doc:id="f1ae7dae-91df-4c96-84f9-97534e53f561">
+            <ee:transform doc:name="Transform Message" doc:id="eaa222d6-4467-43d0-90b7-e7abe40d805c">
                 <ee:message>
                     <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -454,17 +459,17 @@ output application/json
                 </ee:message>
             </ee:transform>
         </try>
-        <remove-variable doc:name="Remove Variable" doc:id="17c86571-051f-4aee-935f-b2e71ecb5f91" variableName="updateItemId" />
-        <logger level="INFO" doc:name="Logger" doc:id="5e105575-2065-41f1-a384-967bbcc3d290" message="Successfully updated user" />
+        <remove-variable doc:name="Remove Variable" doc:id="d761e042-a40e-4012-a4ce-e750f627755e" variableName="updateItemId" />
+        <logger level="INFO" doc:name="Logger" doc:id="cbdb1683-98a9-4d40-b64d-8a32f93616ef" message="Successfully updated user" />
     </flow>
-    <flow name="delete:\items\(itemId):bachelorims-config">
-        <set-variable value="#[attributes.uriParams.'itemId']" doc:name="Set Variable" doc:id="d1dab3f4-8fcf-414b-90ea-fea6d172da24" variableName="deleteItemId" />
-        <try doc:name="Try" doc:id="f565c2ec-90e8-412c-9354-e378aa7c6d73">
-            <db:delete doc:name="Delete an item" doc:id="2bb6b043-2e69-4067-bbc0-d6d54137f468" config-ref="Database_Config">
+    <flow name="delete:\items\(itemId):ims_specs-config">
+        <set-variable value="#[attributes.uriParams.'itemId']" doc:name="Set Variable" doc:id="da8cf4b8-d069-431f-9744-8d4b6908e822" variableName="deleteItemId" />
+        <try doc:name="Try" doc:id="678ea9bf-c9bc-4b88-a9dd-0b7bdfd91776">
+            <db:delete doc:name="Delete an item" doc:id="645fd3c4-1c17-4a05-9588-9b9c8f3b2146" config-ref="Database_Config">
                 <db:sql><![CDATA[DELETE FROM items WHERE item_id = :ITEMID]]></db:sql>
                 <db:input-parameters><![CDATA[#[{USERID: vars.deleteItemId}]]]></db:input-parameters>
             </db:delete>
-            <ee:transform doc:name="Transform Message" doc:id="5558b1c1-009b-409f-b70b-8237b9f87489">
+            <ee:transform doc:name="Transform Message" doc:id="9fff5c8c-0f12-499f-b7a4-d8ccda313375">
                 <ee:message>
                     <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -475,14 +480,14 @@ output application/json
                 </ee:message>
             </ee:transform>
         </try>
-        <remove-variable doc:name="Remove Variable" doc:id="43e2171b-04e0-40ea-8191-cfd5ded7646a" variableName="deleteItemId" />
-        <logger level="INFO" message="delete:\items\(itemId):bachelorims-config" />
+        <remove-variable doc:name="Remove Variable" doc:id="60a6f99b-69df-4ce5-b446-9efd93fdf92d" variableName="deleteItemId" />
+        <logger level="INFO" doc:name="Logger" doc:id="da1d7f15-803c-4d53-933c-375b9c42430b" message="delete:\items\(itemId):bachelorims-config" />
     </flow>
-    <flow name="get:\collections:bachelorims-config">
-        <db:select doc:name="Select all collections" doc:id="55600176-cd2c-4c06-ac96-8d3fb10919ab" config-ref="Database_Config">
+    <flow name="get:\collections:ims_specs-config">
+        <db:select doc:name="Select all collections" doc:id="c06b6e67-f91d-4aab-9df6-edfe088707bf" config-ref="Database_Config">
             <db:sql><![CDATA[SELECT * FROM collections]]></db:sql>
         </db:select>
-        <ee:transform doc:name="Transform Message" doc:id="0b6ab932-00d7-4871-b06c-86126fac1398">
+        <ee:transform doc:name="Transform Message" doc:id="e82bc418-b170-4ed2-89b1-eecf1d533c58">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -494,15 +499,15 @@ payload map ( payload01 , indexOfPayload01 ) -> {
             </ee:message>
         </ee:transform>
     </flow>
-    <flow name="get:\collections\(collectionId):bachelorims-config">
-        <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="e6765b6d-0407-4743-9a7f-d77d8ea7d56b" variableName="getSingleCollection" />
-        <try doc:name="Try" doc:id="d0012795-b5de-460a-bc15-4b20944a0d34">
-            <db:query-single doc:name="Query single collection" doc:id="f33e11c9-1f0d-4125-977a-65695978a08a" config-ref="Database_Config">
+    <flow name="get:\collections\(collectionId):ims_specs-config">
+        <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="ceda5ca4-d6b7-4b01-bed4-ec239756da20" variableName="getSingleCollection" />
+        <try doc:name="Try" doc:id="775f3be8-fb17-4ea4-8254-04622d7e9901">
+            <db:query-single doc:name="Query single collection" doc:id="3251b474-866e-41be-ac13-042bafb1516e" config-ref="Database_Config">
                 <db:sql><![CDATA[SELECT * FROM collections
 WHERE collection_id = :CID]]></db:sql>
                 <db:input-parameters><![CDATA[#[{CID: vars.getSingleCollection}]]]></db:input-parameters>
             </db:query-single>
-            <ee:transform doc:name="Transform Message" doc:id="c8addd54-5408-4244-9d95-0b1b71715eb6">
+            <ee:transform doc:name="Transform Message" doc:id="7139686f-8ef4-4db8-84bb-ba85abba5cec">
                 <ee:message>
                     <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -514,21 +519,21 @@ output application/json
                 </ee:message>
             </ee:transform>
         </try>
-        <remove-variable doc:name="Remove Variable" doc:id="552c8443-2ca1-41bd-be0d-a8ec50563269" variableName="getSingleCollection" />
+        <remove-variable doc:name="Remove Variable" doc:id="28241db2-50e5-4943-b8e8-e11557058c4e" variableName="getSingleCollection" />
     </flow>
-    <flow name="get:\collections\(collectionId)\items:bachelorims-config">
-        <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="69c5709f-ab6a-4dc7-aed6-2f08f945af42" variableName="getCollectionWithItems"/>
-		<try doc:name="Try" doc:id="0d6770a1-1f26-4825-8c1d-77a0a2180093" >
-			<db:select doc:name="Select collection with items" doc:id="24c7f51b-b080-4b4d-b650-aae6d5d08a28" config-ref="Database_Config">
-				<db:sql ><![CDATA[SELECT c.collection_id, i.item_id, i.name, i.price, i.amount, i.type, i.width, i.height, i.color
+    <flow name="get:\collections\(collectionId)\items:ims_specs-config">
+        <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="dbcc03b0-f1ab-4f56-9e67-405ac4386094" variableName="getCollectionWithItems" />
+        <try doc:name="Try" doc:id="fd5d720d-dcba-44fe-8f25-b41e86efcc73">
+            <db:select doc:name="Select collection with items" doc:id="269643a2-a440-469c-a447-3d4d7fd2062e" config-ref="Database_Config">
+                <db:sql><![CDATA[SELECT c.collection_id, i.item_id, i.name, i.price, i.amount, i.type, i.width, i.height, i.color
 FROM ims.collections AS c
 JOIN ims.items AS i ON c.collection_id = i.collection_id
 WHERE c.collection_id = :COLID;]]></db:sql>
-				<db:input-parameters ><![CDATA[#[{ COLID: vars.getCollectionWithItems }]]]></db:input-parameters>
-			</db:select>
-			<ee:transform doc:name="Transform Message" doc:id="a8bea0db-c43b-46e9-a8af-1db617907ec6" >
-				<ee:message >
-					<ee:set-payload ><![CDATA[%dw 2.0
+                <db:input-parameters><![CDATA[#[{ COLID: vars.getCollectionWithItems }]]]></db:input-parameters>
+            </db:select>
+            <ee:transform doc:name="Transform Message" doc:id="a76d1f31-cea4-4028-b384-eb4d2979ba22">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 {
@@ -544,20 +549,29 @@ output application/json
 		color: $.color,
 	}
 }]]></ee:set-payload>
-				</ee:message>
-			</ee:transform>
-		</try>
-		<remove-variable doc:name="Remove Variable" doc:id="7dccc1ff-e6cc-49e3-9270-565c13ba014d" variableName="getCollectionWithItems"/>
+                </ee:message>
+            </ee:transform>
+        </try>
+        <remove-variable doc:name="Remove Variable" doc:id="0a7c80c7-b037-44e4-b802-5791dc61cf64" variableName="getCollectionWithItems" />
     </flow>
-	<flow name="post:\collections:application\json:bachelorims-config">
-        <set-variable value="#[payload.userId]" doc:name="Set Variable" doc:id="3e4b298b-9291-4562-80ae-d1203032c638" variableName="userId" />
-        <db:insert doc:name="Create new collection" doc:id="a70c0f82-e580-4d8b-8193-c8e54c650221" config-ref="Database_Config">
+    <flow name="delete:\collections\(collectionId):ims_specs-config">
+        <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="008be2e2-7146-4fe3-9fa1-059b5d1a94e5" variableName="deleteCollectionId" />
+        <db:delete doc:name="Delete a collection" doc:id="dfd1727a-918d-4167-a5f6-c28c90947584" config-ref="Database_Config">
+            <db:sql><![CDATA[DELETE FROM collections 
+WHERE collection_id = :COLID]]></db:sql>
+            <db:input-parameters><![CDATA[#[{COLID: vars.deleteCollectionId}]]]></db:input-parameters>
+        </db:delete>
+        <logger level="INFO" doc:name="Logger" doc:id="a23baaae-1297-4312-9f66-03afede00567" message="delete:\collections\(collectionId):bachelorims-config" />
+    </flow>
+    <flow name="post:\collections:application\json:ims_specs-config">
+        <set-variable value="#[payload.userId]" doc:name="Set Variable" doc:id="46f02404-a6cc-478b-81f1-42bf90f6510a" variableName="userId" />
+        <db:insert doc:name="Create new collection" doc:id="ddebfe14-5a24-4dfd-9122-3eba087ed11c" config-ref="Database_Config">
             <db:sql><![CDATA[INSERT INTO collections (user_id)
 VALUES
 (:USERID)]]></db:sql>
             <db:input-parameters><![CDATA[#[{USERID: vars.userId}]]]></db:input-parameters>
         </db:insert>
-        <ee:transform doc:name="Transform Message" doc:id="053b7dab-9c4f-477c-ac60-6d000f4ec7c2">
+        <ee:transform doc:name="Transform Message" doc:id="a92e3184-0ecb-44be-8838-29c8da2a170a">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -568,13 +582,20 @@ output application/json
             </ee:message>
         </ee:transform>
     </flow>
-	<flow name="delete:\collections\(collectionId):bachelorims-config">
-        <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="b8aa7f89-7961-47d9-9df5-8dc50dfda540" variableName="deleteCollectionId" />
-        <db:delete doc:name="Delete a collection" doc:id="c3dfa7b2-e11f-4d9b-826f-4d037ef9a90f" config-ref="Database_Config">
-            <db:sql><![CDATA[DELETE FROM collections 
-WHERE collection_id = :COLID]]></db:sql>
-            <db:input-parameters><![CDATA[#[{COLID: vars.deleteCollectionId}]]]></db:input-parameters>
-        </db:delete>
-        <logger level="INFO" message="delete:\collections\(collectionId):bachelorims-config" />
+    <flow name="post:\auth\login:application\json:ims_specs-config">
+		<flow-ref doc:name="Auth/verifyUser" doc:id="78ed8acb-61f2-459b-bad0-f3c94dc17292" name="verifyUser"/>
+		<flow-ref doc:name="Auth/ createJwT" doc:id="2997c477-3428-4360-b99c-37a0dbefb4ed" name="createJwtToken"/>
+		<ee:transform doc:name="Transform Message" doc:id="60c45acd-c2f7-44ff-8338-d815c98bf812" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	token: vars.jwtToken,
+	user: payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="1470ffe3-838c-4ac4-8e8d-c11184b43cb9" />
     </flow>
 </mule>
