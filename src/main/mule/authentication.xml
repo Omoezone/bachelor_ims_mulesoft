@@ -37,4 +37,9 @@ WHERE email = :EMAIL]]></db:sql>
 		</java:invoke-static>
 		<logger level="INFO" doc:name="Logger" doc:id="2e8be429-251f-4043-ab70-5de2e3a2e20d" />
 	</flow>
+	<sub-flow name="validateJwtToken" doc:id="76c195e3-6800-4a18-a352-f7790389ba80" >
+		<java:invoke-static doc:name="validate JWT Token" doc:id="30344f52-3214-4a88-a83b-9b47e50c3cb2" class="security.JwtUtil" method="validateToken(java.lang.String)">
+			<java:args ><![CDATA[#[arg0: payload.token]]]></java:args>
+		</java:invoke-static>
+	</sub-flow>
 </mule>

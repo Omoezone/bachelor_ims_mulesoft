@@ -1,0 +1,18 @@
+mysql:
+  host: "localhost"
+  port: "3306"
+  user: "root"
+  password: "root"
+  database: "ims"
+
+http:  
+  port: "8081"
+  private.port: "8091"
+  
+https:
+  port: "8082"
+  private.port: "8092"
+
+api:
+  host: "0.0.0.0"
+  path: "/api/*"

@@ -1,0 +1,18 @@
+mysql:
+  host: "inventoryms.mysql.database.azure.com"
+  port: "3306"
+  user: "omoezone"
+  password: "Willy.Jean12"
+  database: "ims"
+
+http:  
+  port: "8081"
+  private.port: "8091"
+  
+https:
+  port: "8082"
+  private.port: "8092"
+
+api:
+  host: "0.0.0.0"
+  path: "/api/*"

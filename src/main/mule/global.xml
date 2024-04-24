@@ -5,6 +5,8 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
 	<db:config name="Database_Config" doc:name="Database Config" doc:id="6ddad737-5a4d-4a73-948b-1de90c9de3ca" >
-		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="ims" />
+		<db:my-sql-connection host="${mysql.host}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}" database="${mysql.database}" />
 	</db:config>
+	<global-property doc:name="Global Property" doc:id="e73d158b-9577-4bf3-baf7-33cee61055ce" name="env" value="local" />
+	<configuration-properties doc:name="Configuration properties" doc:id="cf4bf321-be01-4f3d-b662-354c3530d86f" file="properties/app-${env}.yaml" />
 </mule>
