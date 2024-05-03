@@ -14,7 +14,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
 		<app.runtime>4.5.3</app.runtime>
-		<mule.maven.plugin.version>4.0.0</mule.maven.plugin.version>
+		<mule.maven.plugin.version>4.1.0</mule.maven.plugin.version>
 	</properties>
 
 	<build>
@@ -126,7 +126,7 @@
 		<dependency>
 			<groupId>a1600366-34e7-452e-a23d-daddabc1e9c9</groupId>
 			<artifactId>ims_specs</artifactId>
-			<version>1.0.8</version>
+			<version>1.0.13</version>
 			<classifier>raml</classifier>
 			<type>zip</type>
 		</dependency>

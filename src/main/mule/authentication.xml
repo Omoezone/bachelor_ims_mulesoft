@@ -13,6 +13,22 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 WHERE email = :EMAIL]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{EMAIL: payload.email}]]]></db:input-parameters>
 		</db:query-single>
+		<ee:transform doc:name="Transform Message" doc:id="aff9787d-536a-4ae6-9bc7-b6d3e8b1e17a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	userId: payload.user_id,
+	firstName: payload.first_name,
+	lastName: payload.last_name,
+	email: payload.email,
+	password: payload.password,
+	age: payload.age,
+	gender: payload.gender
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 		<java:invoke-static doc:name="ComparePasswords" doc:id="b837ed9f-549e-4cd6-86e1-62e482e1ba11" class="security.ComparePassword" method="checkPassword(java.lang.String,java.lang.String)" target="compareResult">
 			<java:args ><![CDATA[#[{
 	arg0: vars.pp as String,
