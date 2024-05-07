@@ -6,44 +6,52 @@
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-	<flow name="verifyUser" doc:id="c88abc52-041b-46da-8fd0-891ecb1918dd" >
-		<set-variable value="#[payload.password as String]" doc:name="Set Variable" doc:id="7fdbf867-13f9-4b54-b4bb-4204bd448b7b" variableName="pp"/>
-		<db:query-single doc:name="Query single" doc:id="8c3b88cb-eb77-4f82-8647-7c161808d642" config-ref="Database_Config">
-			<db:sql ><![CDATA[SELECT * FROM users 
-WHERE email = :EMAIL]]></db:sql>
-			<db:input-parameters ><![CDATA[#[{EMAIL: payload.email}]]]></db:input-parameters>
-		</db:query-single>
-		<ee:transform doc:name="Transform Message" doc:id="aff9787d-536a-4ae6-9bc7-b6d3e8b1e17a" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+	<flow name="verifyUser" doc:id="d8b5f773-b4f3-4456-8669-3c634d2f4248">
+    <set-variable value="#[payload.password as String]" doc:name="Set Variable" doc:id="348946fe-b649-4b15-9995-b6061fe53334" variableName="pp"/>
+    <db:query-single doc:name="Query single" doc:id="268da1c7-a465-4405-9aaa-402fd068ca6c" config-ref="Database_Config">
+        <db:sql><![CDATA[SELECT * FROM users WHERE email = :EMAIL]]></db:sql>
+        <db:input-parameters><![CDATA[#[{EMAIL: payload.email}]]]></db:input-parameters>
+    </db:query-single>
+    
+    <choice doc:name="Check User Exists" doc:id="2d523827-1a14-4916-91ce-334fd5876c1b">
+        <when expression="#[payload.user_id != null]">
+            <ee:transform doc:name="Transform Message" doc:id="7129347b-ccaf-445f-8985-bea67854866d">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 {
-	userId: payload.user_id,
-	firstName: payload.first_name,
-	lastName: payload.last_name,
-	email: payload.email,
-	password: payload.password,
-	age: payload.age,
-	gender: payload.gender
+    userId: payload.user_id,
+    firstName: payload.first_name,
+    lastName: payload.last_name,
+    email: payload.email,
+    password: payload.password,
+    age: payload.age,
+    gender: payload.gender
 }]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-		<java:invoke-static doc:name="ComparePasswords" doc:id="b837ed9f-549e-4cd6-86e1-62e482e1ba11" class="security.ComparePassword" method="checkPassword(java.lang.String,java.lang.String)" target="compareResult">
-			<java:args ><![CDATA[#[{
-	arg0: vars.pp as String,
-	arg1: payload.password as String
-}]]]></java:args>
-		</java:invoke-static>
-		<choice doc:name="Choice" doc:id="42e9e34b-ffea-4355-a52d-de55b783958e" >
-			<when expression="#[vars.compareResult]">
-				<logger level="INFO" doc:name="Auth Successful" doc:id="c8dbf31a-a97d-4525-8764-88bdfcbbd363" message="Auth Success"/>
-			</when>
-			<otherwise>
-				<logger level="INFO" doc:name="Auth Error" doc:id="2d93106e-b61c-4aa8-92a6-42e4a66a6254" message="Auth Not Successfull"/>
-			</otherwise>
-		</choice>
-	</flow>
+                </ee:message>
+            </ee:transform>
+            <java:invoke-static doc:name="ComparePasswords" doc:id="cac8f6cd-fdc0-43c8-996d-56c20175d9ca" class="security.ComparePassword" method="checkPassword(java.lang.String,java.lang.String)" target="compareResult">
+                <java:args><![CDATA[#[{
+                    arg0: vars.pp as String,
+                    arg1: payload.password as String
+                }]]]></java:args>
+            </java:invoke-static>
+            <choice doc:name="Choice" doc:id="8b02bdc7-4d8c-4bfd-8b1f-e46b05cd6e2e">
+                <when expression="#[vars.compareResult]">
+                    <logger level="INFO" doc:name="Auth Successful" doc:id="4fa1cca5-0516-4146-91c7-cce6742e75b1" message="Auth Success"/>
+                </when>
+                <otherwise>
+                    <raise-error type="AUTHENTICATION:UNAUTHORIZED" doc:name="Raise Unauthorized Error" doc:id="5652c4d7-9f62-42f0-8895-17b3964c40cc"/>
+                </otherwise>
+            </choice>
+        </when>
+        <otherwise>
+            <raise-error type="AUTHENTICATION:UNAUTHORIZED" doc:name="Raise Unauthorized Error" doc:id="213a9b33-213b-4777-8c50-63fc290788b6"/>
+        </otherwise>
+    </choice>
+</flow>
+
 	<flow name="createJwtToken" doc:id="0bc46f79-76e2-45c6-b619-18c44aa887ee" >
 		<java:invoke-static doc:name="generate JWT TOKEN" doc:id="5ae8cc38-78d5-4e82-8f6b-3aba506aa0c1" class="security.JwtUtil" method="generateToken(java.lang.String,int)" target="jwtToken">
 			<java:args ><![CDATA[#[{

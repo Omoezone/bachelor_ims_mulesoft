@@ -3,7 +3,7 @@
     <http:listener-config name="ims_specs-httpListenerConfig">
         <http:listener-connection host="${api.host}" port="${http.port}" />
     </http:listener-config>
-    <apikit:config name="ims_specs-config" api="resource::a1600366-34e7-452e-a23d-daddabc1e9c9:ims_specs:1.0.13:raml:zip:ims_specs.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <apikit:config name="ims_specs-config" api="resource::a1600366-34e7-452e-a23d-daddabc1e9c9:ims_specs:1.0.14:raml:zip:ims_specs.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
     <flow name="ims_specs-main">
         <http:listener config-ref="ims_specs-httpListenerConfig" path="/api/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
@@ -236,9 +236,9 @@ output application/java
             </ee:message>
         </ee:transform>
         <java:invoke-static method="hashPassword(java.lang.String)" doc:name="Invoke static" doc:id="b2934ceb-a3f2-4a72-b6bd-9bdeb1ba37c8" class="security.PasswordHasher" target="hashedPassword">
-			<java:args><![CDATA[#[arg0: payload.password]]]></java:args>
-		</java:invoke-static>
-		<try doc:name="Try" doc:id="9510a0ad-5b1e-4eed-a19c-84d407af9e09">
+            <java:args><![CDATA[#[arg0: payload.password]]]></java:args>
+        </java:invoke-static>
+        <try doc:name="Try" doc:id="9510a0ad-5b1e-4eed-a19c-84d407af9e09">
             <db:update doc:name="Update an existing user" doc:id="6d45d197-b16b-41d7-92b0-2f9326b35ea6" config-ref="Database_Config">
                 <db:sql><![CDATA[UPDATE `ims`.`users`
 SET
@@ -319,7 +319,7 @@ payload map ( payload01 , indexOfPayload01 ) -> {
         </try>
         <logger level="INFO" doc:name="Logger1" doc:id="9bc39128-ecf4-4a07-b746-607beaeead7b" message="Got all items" />
     </flow>
-    <flow name="get:\items\(itemId):ims_specs-config">
+	<flow name="get:\items\(itemId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'itemId']" doc:name="Set Variable" doc:id="0605a2c4-4e31-46e6-b669-b8f5560cb12a" variableName="GetItemId" />
         <try doc:name="Try" doc:id="4f6da256-ae62-4c6c-9714-7605fa69a6c3">
             <db:query-single doc:name="Query single" doc:id="621dd80d-f6c8-4003-911c-ec45c3b98edf" config-ref="Database_Config">
@@ -350,7 +350,36 @@ output application/json
         <remove-variable doc:name="Remove Variable" doc:id="38e340bc-4fc6-42d0-87ae-b4989d950ff7" variableName="GetItemId" />
         <logger level="INFO" doc:name="Logger" doc:id="dc799a07-1f0d-4094-bbc9-d06f07071a15" message="Successfully found an item" />
     </flow>
-    <flow name="post:\items:application\json:ims_specs-config">
+	<flow name="get:\items\(userId)\items:ims_specs-config">
+        <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="fe0366d4-2612-4ee3-8599-b62d917a51d1" variableName="userId"/>
+		<db:select doc:name="Select" doc:id="585104f6-c6d9-42f0-a1fb-af80d158b6b9" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT i.*
+FROM ims.users u
+JOIN ims.collections c ON u.user_id = c.user_id
+JOIN ims.items i ON c.collection_id = i.collection_id
+WHERE u.user_id = :UID;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{UID: vars.userId}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="a7b37020-a53c-4701-adc2-18ed065c450f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map(payload01, index) -> {
+	itemId: payload01.item_id,
+	name: payload01.name,
+	price: payload01.price,
+	amount: payload01.amount,
+	"type": payload01."type",
+	width: payload01.width,
+	height: payload01.height,
+	color: payload01.color
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<remove-variable doc:name="Remove Variable" doc:id="3eb9906a-0985-4d41-9981-8ace48f667ec" variableName="userId"/>
+    </flow>
+	<flow name="post:\items:application\json:ims_specs-config">
         <set-variable value="#[attributes.queryParams.'collectionId']" doc:name="Set Variable" doc:id="6557c649-ad76-49aa-9057-93553693a9d4" variableName="PostItem" />
         <ee:transform doc:name="Transform Message" doc:id="2af4a93b-16e4-4daf-90e3-111b4186dd98">
             <ee:message>
@@ -396,7 +425,7 @@ output application/json
         </try>
         <remove-variable doc:name="Remove Variable" doc:id="a5c587dd-c465-423a-a1d6-1c26fc5960d9" variableName="PostItem" />
     </flow>
-    <flow name="put:\items\(itemId):application\json:ims_specs-config">
+	<flow name="put:\items\(itemId):application\json:ims_specs-config">
         <set-variable value="#[attributes.uriParams.'itemId']" doc:name="Set Variable" doc:id="324ea670-48a1-4195-85e9-f53e858e6666" variableName="updateItemId" />
         <ee:transform doc:name="Transform Message" doc:id="a2b67a33-8133-4bca-aec5-48e69173a6c8">
             <ee:message>
@@ -427,17 +456,7 @@ SET name = :NAME,
     color = :COLOR, 
     collection_id = :COLLID
 WHERE item_id = :ITEMID;]]></db:sql>
-                <db:input-parameters><![CDATA[#[{
-	NAME: payload.name,
-	PRICE: payload.price,
-	AMOUNT: payload.amount,
-	"TYPE": payload."type",
-	WIDTH: payload.width,
-	HEIGHT: payload.height,
-	COLOR: payload.color,
-	COLLID: payload.collectionId,
-	ITEMID: vars.updateItemId
-}]]]></db:input-parameters>
+                <db:input-parameters />
             </db:update>
             <ee:transform doc:name="Transform Message" doc:id="eaa222d6-4467-43d0-90b7-e7abe40d805c">
                 <ee:message>
@@ -474,7 +493,7 @@ output application/json
         <remove-variable doc:name="Remove Variable" doc:id="60a6f99b-69df-4ce5-b446-9efd93fdf92d" variableName="deleteItemId" />
         <logger level="INFO" doc:name="Logger" doc:id="da1d7f15-803c-4d53-933c-375b9c42430b" message="delete:\items\(itemId):bachelorims-config" />
     </flow>
-    <flow name="get:\collections:ims_specs-config">
+	<flow name="get:\collections:ims_specs-config">
         <db:select doc:name="Select all collections" doc:id="c06b6e67-f91d-4aab-9df6-edfe088707bf" config-ref="Database_Config">
             <db:sql><![CDATA[SELECT * FROM collections]]></db:sql>
         </db:select>
@@ -490,7 +509,7 @@ payload map ( payload01 , indexOfPayload01 ) -> {
             </ee:message>
         </ee:transform>
     </flow>
-    <flow name="get:\collections\(collectionId):ims_specs-config">
+	<flow name="get:\collections\(collectionId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="ceda5ca4-d6b7-4b01-bed4-ec239756da20" variableName="getSingleCollection" />
         <try doc:name="Try" doc:id="775f3be8-fb17-4ea4-8254-04622d7e9901">
             <db:query-single doc:name="Query single collection" doc:id="3251b474-866e-41be-ac13-042bafb1516e" config-ref="Database_Config">
@@ -545,7 +564,7 @@ output application/json
         </try>
         <remove-variable doc:name="Remove Variable" doc:id="0a7c80c7-b037-44e4-b802-5791dc61cf64" variableName="getCollectionWithItems" />
     </flow>
-    <flow name="post:\collections:application\json:ims_specs-config">
+	<flow name="post:\collections:application\json:ims_specs-config">
         <ee:transform doc:name="Transform Message" doc:id="964eccae-7e37-4734-a0f9-df3502769c0f">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
@@ -590,7 +609,7 @@ WHERE collection_id = :COLID]]></db:sql>
         <remove-variable doc:name="Remove Variable" doc:id="2c2a7ddf-1228-4dd2-87e3-65d26588c01a" variableName="deleteCollectionId" />
         <logger level="INFO" doc:name="Logger" doc:id="a23baaae-1297-4312-9f66-03afede00567" message="delete:\collections\(collectionId):bachelorims-config" />
     </flow>
-    <flow name="get:\users\(userId)\collections:ims_specs-config">
+	<flow name="get:\users\(userId)\collections:ims_specs-config">
         <ee:transform doc:name="Transform Message">
             <ee:variables>
                 <ee:set-variable variableName="userId">attributes.uriParams.'userId'</ee:set-variable>
@@ -621,7 +640,7 @@ payload map(payload01, index) -> {
         </try>
         <logger level="INFO" message="get:\users\(userId)\collections:ims_specs-config" />
     </flow>
-    <flow name="post:\auth\login:application\json:ims_specs-config">
+	<flow name="post:\auth\login:application\json:ims_specs-config">
         <flow-ref doc:name="Auth/verifyUser" doc:id="78ed8acb-61f2-459b-bad0-f3c94dc17292" name="verifyUser" />
         <flow-ref doc:name="Auth/ createJwT" doc:id="2997c477-3428-4360-b99c-37a0dbefb4ed" name="createJwtToken" />
         <ee:transform doc:name="Transform Message" doc:id="60c45acd-c2f7-44ff-8338-d815c98bf812">
