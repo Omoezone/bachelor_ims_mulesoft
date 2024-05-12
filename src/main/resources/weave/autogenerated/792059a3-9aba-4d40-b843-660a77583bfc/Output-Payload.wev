@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_792059a3_9aba_4d40_b843_660a77583bfc_Output_Payload = Array<{|  user_id: Number,   first_name: String,   last_name: String,   email: String,   password: String,   group_id: Number,   group_name: String|}>
+

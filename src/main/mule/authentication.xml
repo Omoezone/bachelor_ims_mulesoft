@@ -7,33 +7,59 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<flow name="verifyUser" doc:id="d8b5f773-b4f3-4456-8669-3c634d2f4248">
-    <set-variable value="#[payload.password as String]" doc:name="Set Variable" doc:id="348946fe-b649-4b15-9995-b6061fe53334" variableName="pp"/>
-    <db:query-single doc:name="Query single" doc:id="268da1c7-a465-4405-9aaa-402fd068ca6c" config-ref="Database_Config">
-        <db:sql><![CDATA[SELECT * FROM users WHERE email = :EMAIL]]></db:sql>
-        <db:input-parameters><![CDATA[#[{EMAIL: payload.email}]]]></db:input-parameters>
-    </db:query-single>
-    
-    <choice doc:name="Check User Exists" doc:id="2d523827-1a14-4916-91ce-334fd5876c1b">
+    <db:select doc:name="Select" doc:id="cef2dfe7-95a7-4687-9fee-d77e5b8f0f0b" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT 
+    u.user_id, 
+    u.first_name, 
+    u.last_name, 
+    u.email,
+    u.password, 
+    g.group_id, 
+    g.group_name
+FROM 
+    ims.users u
+JOIN 
+    ims.user_group ug ON u.user_id = ug.user_id
+JOIN
+    ims.group g ON g.group_id = ug.group_id
+WHERE 
+    u.email = :EMAIL; ]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	EMAIL: vars.pp.email
+}]]]></db:input-parameters>
+		</db:select>
+		<flow-ref doc:name="Flow Reference" doc:id="ea6d2e0e-931a-46c9-b55e-49ffd2b4bc79" name="getUserInvitations"/>
+		<choice doc:name="Check User Exists" doc:id="2d523827-1a14-4916-91ce-334fd5876c1b">
         <when expression="#[payload.user_id != null]">
             <ee:transform doc:name="Transform Message" doc:id="7129347b-ccaf-445f-8985-bea67854866d">
                 <ee:message>
                     <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
-{
-    userId: payload.user_id,
-    firstName: payload.first_name,
-    lastName: payload.last_name,
-    email: payload.email,
-    password: payload.password,
-    age: payload.age,
-    gender: payload.gender
+ {
+	userId: payload[0].user_id,
+	firstName: payload[0].first_name,
+	lastName: payload[0].last_name,
+	email: payload[0].email,
+	password: payload[0].password,
+	groups: payload map {
+	    groupId: $.group_id,
+	    groupName: $.group_name
+	},
+	invites: vars.invites map(invite) -> {
+		invId: invite.invId,
+		senderFN: invite.senderFN, 
+		senderLN: invite.senderLN,
+		groupId: invite.groupId,
+		groupName: invite.groupName,
+		invToken: invite.invToken
+	}
 }]]></ee:set-payload>
                 </ee:message>
             </ee:transform>
             <java:invoke-static doc:name="ComparePasswords" doc:id="cac8f6cd-fdc0-43c8-996d-56c20175d9ca" class="security.ComparePassword" method="checkPassword(java.lang.String,java.lang.String)" target="compareResult">
                 <java:args><![CDATA[#[{
-                    arg0: vars.pp as String,
+                    arg0: vars.pp.password as String,
                     arg1: payload.password as String
                 }]]]></java:args>
             </java:invoke-static>
@@ -46,12 +72,59 @@ output application/json
                 </otherwise>
             </choice>
         </when>
-        <otherwise>
+			<otherwise>
             <raise-error type="AUTHENTICATION:UNAUTHORIZED" doc:name="Raise Unauthorized Error" doc:id="213a9b33-213b-4777-8c50-63fc290788b6"/>
         </otherwise>
     </choice>
 </flow>
-
+	<sub-flow name="getUserInvitations" doc:id="792059a3-9aba-4d40-b843-660a77583bfc" >
+		<db:select doc:name="Select" doc:id="8556a378-5775-4459-8085-aea2b6ea5bc3" config-ref="Database_Config" target="invitesResult">
+			<db:sql><![CDATA[SELECT 
+    gi.invitation_id,
+    gi.group_id,
+    g.group_name,
+    gi.sender_id,
+    u.first_name AS sender_first_name,
+    u.last_name AS sender_last_name,
+    gi.reciever_email,
+    gi.token,
+    gi.created_at,
+    gi.accepted,
+    gi.accepted_at
+FROM 
+    ims.group_invitation gi
+JOIN 
+    ims.group g ON gi.group_id = g.group_id
+JOIN 
+    ims.users u ON gi.sender_id = u.user_id
+WHERE 
+    gi.reciever_email = :EMAIL AND accepted_at IS NULL
+ORDER BY 
+    gi.created_at DESC;
+]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	EMAIL: vars.pp.email
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="f59c4603-655f-4cb0-804e-9ab706ec6042" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="invites" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.invitesResult map(invites) -> {
+	invId: invites.invitation_id,
+	senderFN: invites.sender_first_name, 
+	senderLN: invites.sender_last_name,
+	groupId: invites.group_id,
+	groupName: invites.group_name,
+	invToken: invites.token
+}
+]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</sub-flow>
 	<flow name="createJwtToken" doc:id="0bc46f79-76e2-45c6-b619-18c44aa887ee" >
 		<java:invoke-static doc:name="generate JWT TOKEN" doc:id="5ae8cc38-78d5-4e82-8f6b-3aba506aa0c1" class="security.JwtUtil" method="generateToken(java.lang.String,int)" target="jwtToken">
 			<java:args ><![CDATA[#[{

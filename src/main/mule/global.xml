@@ -26,7 +26,6 @@ output application/json
                 <ee:set-variable variableName="httpStatus">401</ee:set-variable>
             </ee:variables>
         </ee:transform>
-			<logger level="INFO" doc:name="Logger" doc:id="190f3519-4ec9-4a74-a170-6811d2b0eb83" message="DETTE ER EN TEST AF AUTH FOR JAVA OG DB"/>
     
 </on-error-propagate>
 		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate (register user exists)" doc:id="c00e5023-d789-4657-9015-6b388f4c1693" type="DB:QUERY_EXECUTION">
@@ -42,8 +41,21 @@ output application/json
                 <ee:set-variable variableName="httpStatus">409</ee:set-variable>
             </ee:variables>
         </ee:transform>
-			<logger level="INFO" doc:name="Logger" doc:id="7122ac3d-dcf3-4517-bd88-066932ace866" message="DETTE ER EN TEST AF AUTH FOR JAVA OG DB"/>
     
-		</on-error-propagate>	
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate(No email invite)" doc:id="4ac766e0-c35f-4e0b-98e0-8e2c43a5c06f" type="APP:NO_EMAIL">
+			<ee:transform doc:name="Transform Message" doc:id="a87d8f1c-7679-4448-a703-19771557dcd3" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+						output application/json
+						---
+						{ message: "Conflict: No user with that email" }
+						]]></ee:set-payload>
+				</ee:message>
+				<ee:variables>
+                	<ee:set-variable variableName="httpStatus">404</ee:set-variable>
+            	</ee:variables>
+			</ee:transform>
+		</on-error-propagate>
 </error-handler>
 </mule>

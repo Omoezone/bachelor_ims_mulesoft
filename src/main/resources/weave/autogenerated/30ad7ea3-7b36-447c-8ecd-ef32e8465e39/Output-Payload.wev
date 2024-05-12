@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_30ad7ea3_7b36_447c_8ecd_ef32e8465e39_Output_Payload = Array<{  createdAt: String,   senderId: Number,   recieverEmail: String,   groupId: Number,   accepted: Boolean,   invitationId: Number,   token: String,   acceptedAt: String,   _?: Any}>
+
