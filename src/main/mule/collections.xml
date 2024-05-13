@@ -1,5 +1,120 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd"></mule>
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="getAllCollectionForUser" doc:id="3ad8faf5-dafd-42bd-9256-4c2a7db81cc4" >
+		<db:select doc:name="Select" doc:id="fa79a452-6df2-4f6f-9ca0-b892d5adcd60" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT 
+    u.user_id,
+    u.first_name,
+    u.last_name,
+    g.group_id,
+    g.group_name,
+    c.collection_id,
+    c.name,
+    (SELECT COUNT(i.item_id) 
+     FROM ims.items i 
+     WHERE i.collection_id = c.collection_id) AS amount
+FROM 
+    ims.users u
+JOIN 
+    ims.user_group ug ON u.user_id = ug.user_id
+JOIN 
+    ims.group g ON ug.group_id = g.group_id
+JOIN 
+    ims.collections c ON g.group_id = c.group_id
+WHERE 
+    u.user_id = :UID;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{UID: vars.userId}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message1" doc:id="dea089a8-18de-4ce7-9906-6eed1d81b1dc" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map(payload01, index) -> {
+	collectionId: payload01.collection_id,
+	userId: payload01.user_id,
+	name: payload01.name,
+	groupName: payload01.group_name,
+	itemCount: payload01.amount
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getSpecificCollectionWithItems" doc:id="181b434a-a096-46dc-bf05-3a7e40ac8565" >
+		<db:select doc:name="Select collection with items" doc:id="63fa8de5-a235-46b2-8762-4661423b8ad6" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT c.collection_id, i.item_id, i.name, i.price, i.amount, i.type, i.width, i.height, i.color
+FROM ims.collections AS c
+JOIN ims.items AS i ON c.collection_id = i.collection_id
+WHERE c.collection_id = :COLID;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{ COLID: vars.getCollectionWithItems }]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="27a6ec7d-0ad0-4791-98d3-747661a2222c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	collectionId: vars.getCollectionWithItems,
+	items: payload map {
+		itemId: $.item_id,
+		name: $.name,
+		price: $.price,
+		amount: $.amount,
+		"type": $."type",
+		width: $.width,
+		height: $.height,
+		color: $.color,
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="createNewCollection" doc:id="0de052f3-a5b2-4085-aa07-8d5087aa5747" >
+		<ee:transform doc:name="Transform Message" doc:id="56fc227d-8fb7-492b-9a2e-75c36cb18183" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	userId: attributes.queryParams.userId, 
+	name: payload.name,
+	groupId: payload.groupId
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:stored-procedure doc:name="Stored procedure" doc:id="11722d48-7ae5-4ff8-955e-0a18b359cdc7" config-ref="Database_Config" >
+			<db:sql ><![CDATA[CALL AddCollectionAndReturnIt(:NAME, :UID, :GID)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	UID: payload.userId,
+	NAME: payload.name,
+	GID: payload.groupId
+}]]]></db:input-parameters>
+		</db:stored-procedure>
+		<ee:transform doc:name="Transform Message1" doc:id="2c4e4c29-7984-4423-a5da-f9502d0835fd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	name: payload[0].name[0],
+	userId: payload[0].user_id[0],
+	collectionId: payload[0].collection_id[0],
+	groupName: payload[0].group_name[0],
+	itemCount: payload[0].item_count[0]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="deleteSpecificCollection" doc:id="c0a554df-40f4-41a6-ba51-fb8d0ef9fd87" >
+		<db:delete doc:name="Delete a collection" doc:id="79b37754-4f2c-45a5-a10b-022d9e364292" config-ref="Database_Config" >
+			<db:sql ><![CDATA[DELETE FROM collections 
+WHERE collection_id = :COLID]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{COLID: vars.deleteCollectionId}]]]></db:input-parameters>
+		</db:delete>
+	</flow>
+</mule>

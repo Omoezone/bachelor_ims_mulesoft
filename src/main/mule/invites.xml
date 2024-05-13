@@ -10,7 +10,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 		<db:select doc:name="Select" doc:id="ffb7f7f5-6b40-465b-9a4b-845ff777205b" config-ref="Database_Config" >
 			<db:sql ><![CDATA[SELECT * FROM group_invitation gi
 WHERE gi.reciever_email = :EMAIL 
-AND gi.accepted = false]]></db:sql>
+AND gi.accepted = false AND gi.denied = false]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
 	EMAIL: vars.userEmail
 }]]]></db:input-parameters>
@@ -20,15 +20,14 @@ AND gi.accepted = false]]></db:sql>
 				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-payload map(payload01, index) -> {
-	invitationId: payload01.group_invitation_id,
-	groupId: payload01.group_id,
-	senderId: payload01.sender_id,
-	recieverEmail: payload01.reciever_email,
-	token: payload01.token,
-	accepted: payload01.accepted,
-	createdAt: payload01.created_at,
-	acceptedAt: payload01.accepted_at
+payload map(invites) -> {
+	invId: invites.invitation_id,
+	senderFN: invites.sender_first_name, 
+	senderLN: invites.sender_last_name,
+	groupId: invites.group_id,
+	groupName: invites.group_name,
+	invToken: invites.token,
+	acceptedAt: invites.accepted_at
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
@@ -62,7 +61,7 @@ output application/json
 		<db:stored-procedure doc:name="Stored procedure" doc:id="78bce038-62ff-4b15-91d1-bc6265dce39c" config-ref="Database_Config" >
 			<db:sql ><![CDATA[CALL AcceptInvitation(:TOKEN, :UID)]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
-	TOKEN: payload.token,
+	TOKEN: payload.invToken,
 	UID: vars.userId
 }]]]></db:input-parameters>
 		</db:stored-procedure>
@@ -71,10 +70,10 @@ output application/json
 				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-payload map(payload01, index) -> {
-    groupId: payload01.group_id,
-    groupName: payload01.group_name
-}]]></ee:set-payload>
+payload.resultSet1 map ((item, index) -> {
+    groupId: item.group_id,
+    groupName: item.group_name
+})]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 		<remove-variable doc:name="Remove Variable" doc:id="d600fa9a-9c05-4815-ad1b-999d791eb3d8" variableName="userId" />
@@ -82,11 +81,11 @@ payload map(payload01, index) -> {
 	<flow name="denyInvite" doc:id="767b4ee6-59fe-4e3b-a3a7-8896c285c6cc" >
 		<set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="c2ef8316-1373-4f31-abd6-c6325a07a240" variableName="userId"/>
 		<db:update doc:name="Update" doc:id="76ad7f3b-a94b-49fe-861e-fabb6d339c8c" config-ref="Database_Config">
-			<db:sql ><![CDATA[UPDATE group_invitation
-SET accepted_at = now()
+			<db:sql ><![CDATA[UPDATE group_invitation gi
+SET gi.changed_at = now(), gi.denied = true
 WHERE invitation_id = :INID]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
-	INID: payload.invitationId
+	INID: payload
 }]]]></db:input-parameters>
 		</db:update>
 		<remove-variable doc:name="Remove Variable" doc:id="c95f4663-0b87-458e-b111-4db5b380093c" variableName="userId"/>

@@ -1,0 +1,6 @@
+%dw 2.0
+
+type auto_3ad8faf5_dafd_42bd_9256_4c2a7db81cc4_Output_Payload = Array<{  groupId: Number,   name: String,   userId: Number,   items: Array<{    itemId: Number,     amount: Number,     color: String | Null,     price: Number,     name: String,     width: Number | Null,     "type": String,     collectionId: Number,     height: Number | Null,     _?: Any  }> | Null, 
+  _?: Any
+}>
+

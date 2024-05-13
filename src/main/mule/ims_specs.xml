@@ -3,7 +3,7 @@
     <http:listener-config name="ims_specs-httpListenerConfig">
         <http:listener-connection host="${api.host}" port="${http.port}" />
     </http:listener-config>
-    <apikit:config name="ims_specs-config" api="resource::a1600366-34e7-452e-a23d-daddabc1e9c9:ims_specs:1.0.19:raml:zip:ims_specs.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <apikit:config name="ims_specs-config" api="resource::a1600366-34e7-452e-a23d-daddabc1e9c9:ims_specs:1.0.23:raml:zip:ims_specs.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
     <flow name="ims_specs-main">
         <http:listener config-ref="ims_specs-httpListenerConfig" path="/api/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
@@ -537,120 +537,25 @@ output application/json
     </flow>
     <flow name="get:\collections\(collectionId)\items:ims_specs-config">
         <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="dbcc03b0-f1ab-4f56-9e67-405ac4386094" variableName="getCollectionWithItems" />
-        <try doc:name="Try" doc:id="fd5d720d-dcba-44fe-8f25-b41e86efcc73">
-            <db:select doc:name="Select collection with items" doc:id="269643a2-a440-469c-a447-3d4d7fd2062e" config-ref="Database_Config">
-                <db:sql><![CDATA[SELECT c.collection_id, i.item_id, i.name, i.price, i.amount, i.type, i.width, i.height, i.color
-FROM ims.collections AS c
-JOIN ims.items AS i ON c.collection_id = i.collection_id
-WHERE c.collection_id = :COLID;]]></db:sql>
-                <db:input-parameters><![CDATA[#[{ COLID: vars.getCollectionWithItems }]]]></db:input-parameters>
-            </db:select>
-            <ee:transform doc:name="Transform Message" doc:id="a76d1f31-cea4-4028-b384-eb4d2979ba22">
-                <ee:message>
-                    <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-	collectionId: vars.getCollectionWithItems,
-	items: payload map {
-		itemId: $.item_id,
-		name: $.name,
-		price: $.price,
-		amount: $.amount,
-		"type": $."type",
-		width: $.width,
-		height: $.height,
-		color: $.color,
-	}
-}]]></ee:set-payload>
-                </ee:message>
-            </ee:transform>
-        </try>
+        <flow-ref doc:name="Flow Reference" doc:id="d8d8ad70-83eb-4630-b6e2-bd25f5df655f" name="getSpecificCollectionWithItems" />
         <remove-variable doc:name="Remove Variable" doc:id="0a7c80c7-b037-44e4-b802-5791dc61cf64" variableName="getCollectionWithItems" />
     </flow>
     <flow name="post:\collections:application\json:ims_specs-config">
-        <ee:transform doc:name="Transform Message" doc:id="964eccae-7e37-4734-a0f9-df3502769c0f">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-	userId: attributes.queryParams.userId, 
-	name: payload.name,
-	groupId: payload.groupId
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
-        <db:stored-procedure doc:name="Stored procedure" doc:id="b885fd20-db4f-4239-bc0b-b33c8df63068" config-ref="Database_Config">
-            <db:sql><![CDATA[CALL AddCollectionAndReturnIt(:NAME, :UID, :GID)]]></db:sql>
-            <db:input-parameters><![CDATA[#[{
-	UID: payload.userId,
-	NAME: payload.name,
-	GID: payload.groupId
-}]]]></db:input-parameters>
-        </db:stored-procedure>
-        <ee:transform doc:name="Transform Message" doc:id="bfc03f45-b88a-4284-9cb7-31d9b5b2ed96">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-	name: payload[0].name[0],
-	userId: payload[0].user_id[0],
-	collectionId: payload[0].collection_id[0],
-	groupName: payload[0].group_name[0],
-	itemCount: payload[0].item_count[0]
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
-        <logger level="INFO" doc:name="Logger" doc:id="7bdd759c-356c-418e-a728-bf7ba2c73988" />
+        <flow-ref doc:name="Flow Reference" doc:id="d19b124c-9952-4d6e-a974-06dba8e5386f" name="createNewCollection" />
     </flow>
     <flow name="delete:\collections\(collectionId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="008be2e2-7146-4fe3-9fa1-059b5d1a94e5" variableName="deleteCollectionId" />
-        <db:delete doc:name="Delete a collection" doc:id="dfd1727a-918d-4167-a5f6-c28c90947584" config-ref="Database_Config">
-            <db:sql><![CDATA[DELETE FROM collections 
-WHERE collection_id = :COLID]]></db:sql>
-            <db:input-parameters><![CDATA[#[{COLID: vars.deleteCollectionId}]]]></db:input-parameters>
-        </db:delete>
+        <flow-ref doc:name="Flow Reference" doc:id="ffa8e738-9766-402a-b43c-c5cf52ebe55b" name="deleteSpecificCollection" />
         <remove-variable doc:name="Remove Variable" doc:id="2c2a7ddf-1228-4dd2-87e3-65d26588c01a" variableName="deleteCollectionId" />
-        <logger level="INFO" doc:name="Logger" doc:id="a23baaae-1297-4312-9f66-03afede00567" message="delete:\collections\(collectionId):bachelorims-config" />
     </flow>
     <flow name="get:\users\(userId)\collections:ims_specs-config">
-        <ee:transform doc:name="Transform Message">
-            <ee:variables>
-                <ee:set-variable variableName="userId">attributes.uriParams.'userId'</ee:set-variable>
-            </ee:variables>
-        </ee:transform>
-        <try doc:name="Try" doc:id="6d0717f3-f384-4298-9a7c-93a103ceb24d">
-            <db:select doc:name="Select" doc:id="07a6ce35-722b-4277-9d88-4bc033d8cc17" config-ref="Database_Config">
-                <db:sql><![CDATA[SELECT c.collection_id, c.user_id, c.name, g.group_name, COUNT(i.item_id) AS item_count
-FROM collections c
-LEFT JOIN items i ON c.collection_id = i.collection_id
-LEFT JOIN `group` g ON g.group_id = c.group_id
-WHERE c.user_id = :UID
-GROUP BY c.collection_id;]]></db:sql>
-                <db:input-parameters><![CDATA[#[{UID: vars.userId}]]]></db:input-parameters>
-            </db:select>
-            <ee:transform doc:name="Transform Message" doc:id="f88f8f3e-75db-4b18-ac83-4bfc9da98e5f">
-                <ee:message>
-                    <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-payload map(payload01, index) -> {
-	collectionId: payload01.collection_id,
-	userId: payload01.user_id,
-	name: payload01.name,
-	groupName: payload01.group_name,
-	itemCount: payload01.item_count
-}]]></ee:set-payload>
-                </ee:message>
-            </ee:transform>
-        </try>
-        <logger level="INFO" message="get:\users\(userId)\collections:ims_specs-config" />
+        <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="f58ad909-3517-42b5-bf9b-b0a64a0897bc" variableName="userId" />
+        <flow-ref doc:name="Flow Reference" doc:id="1094c200-1273-4ed0-9b72-fc2095559579" name="getAllCollectionForUser" />
+        <remove-variable doc:name="Remove Variable" doc:id="117046b2-b19d-4186-807d-f04957d57139" variableName="userId" />
     </flow>
     <flow name="post:\auth\login:application\json:ims_specs-config">
         <set-variable value="#[{ password: payload.password as String, email: payload.email as String }]" doc:name="Set Variable" doc:id="ee6bfb5c-59de-46cf-afc7-008f170d18e2" variableName="pp" />
-		<flow-ref doc:name="Auth/verifyUser" doc:id="78ed8acb-61f2-459b-bad0-f3c94dc17292" name="verifyUser" />
+        <flow-ref doc:name="Auth/verifyUser" doc:id="78ed8acb-61f2-459b-bad0-f3c94dc17292" name="verifyUser" />
         <flow-ref doc:name="Auth/ createJwT" doc:id="2997c477-3428-4360-b99c-37a0dbefb4ed" name="createJwtToken" />
         <ee:transform doc:name="Transform Message" doc:id="60c45acd-c2f7-44ff-8338-d815c98bf812">
             <ee:message>
@@ -664,7 +569,7 @@ output application/json
             </ee:message>
         </ee:transform>
         <logger level="INFO" doc:name="Logger" doc:id="1470ffe3-838c-4ac4-8e8d-c11184b43cb9" />
-		<remove-variable doc:name="Remove Variable" doc:id="5614cd9d-b2a9-4111-8ca0-cce1354ac22c" variableName="pp"/>
+        <remove-variable doc:name="Remove Variable" doc:id="5614cd9d-b2a9-4111-8ca0-cce1354ac22c" variableName="pp" />
     </flow>
     <flow name="post:\auth\verify:application\json:ims_specs-config">
         <ee:transform doc:name="Transform Message" doc:id="de7f1df1-d56e-47c2-b78e-b2e7b8127744">
@@ -689,15 +594,25 @@ payload]]></ee:set-payload>
         <logger level="INFO" doc:name="Logger" doc:id="fc147d34-5165-4c6d-8aa6-5b328c0d2949" />
     </flow>
     <flow name="post:\users\(userId)\sendInvite:application\json:ims_specs-config">
-		<flow-ref doc:name="Flow Reference" doc:id="0008cbb8-793e-47e3-89f4-029484bc5444" name="sendInvite"/>
+        <flow-ref doc:name="Flow Reference" doc:id="0008cbb8-793e-47e3-89f4-029484bc5444" name="sendInvite" />
     </flow>
     <flow name="get:\users\(email)\invitations:ims_specs-config">
-		<flow-ref doc:name="Flow Reference" doc:id="40d4060b-3b44-43cd-9c78-ba2671e84e63" name="getUserInvites"/>
+        <flow-ref doc:name="Flow Reference" doc:id="40d4060b-3b44-43cd-9c78-ba2671e84e63" name="getUserInvites" />
     </flow>
     <flow name="put:\users\(userId)\acceptInvite:application\json:ims_specs-config">
-		<flow-ref doc:name="Flow Reference" doc:id="fc145084-1287-40d9-b525-03fe5070fa77" name="acceptInvite"/>
+        <flow-ref doc:name="Flow Reference" doc:id="fc145084-1287-40d9-b525-03fe5070fa77" name="acceptInvite" />
     </flow>
-	<flow name="patch:\users\(userId)\denyInvite:application\json:ims_specs-config">
-		<flow-ref doc:name="Flow Reference" doc:id="c8c9485d-a324-4446-a9cf-0574bca0f5be" name="denyInvite"/>
+    <flow name="patch:\users\(userId)\denyInvite:application\json:ims_specs-config">
+        <flow-ref doc:name="Flow Reference" doc:id="c8c9485d-a324-4446-a9cf-0574bca0f5be" name="denyInvite" />
+        <ee:transform doc:name="Transform Message" doc:id="5febead7-ed29-4df1-9dc3-ecb97ae40892">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Successfully denied a group invitation"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
     </flow>
 </mule>

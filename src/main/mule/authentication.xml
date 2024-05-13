@@ -52,7 +52,8 @@ output application/json
 		senderLN: invite.senderLN,
 		groupId: invite.groupId,
 		groupName: invite.groupName,
-		invToken: invite.invToken
+		invToken: invite.invToken,
+		acceptedAt: invite.acceptedAt
 	}
 }]]></ee:set-payload>
                 </ee:message>
@@ -90,7 +91,7 @@ output application/json
     gi.token,
     gi.created_at,
     gi.accepted,
-    gi.accepted_at
+    gi.changed_at
 FROM 
     ims.group_invitation gi
 JOIN 
@@ -98,7 +99,7 @@ JOIN
 JOIN 
     ims.users u ON gi.sender_id = u.user_id
 WHERE 
-    gi.reciever_email = :EMAIL AND accepted_at IS NULL
+   gi.denied = 0 AND gi.accepted = 0 AND gi.reciever_email = :EMAIL 
 ORDER BY 
     gi.created_at DESC;
 ]]></db:sql>
@@ -119,7 +120,8 @@ vars.invitesResult map(invites) -> {
 	senderLN: invites.sender_last_name,
 	groupId: invites.group_id,
 	groupName: invites.group_name,
-	invToken: invites.token
+	invToken: invites.token,
+	acceptedAt: invites.accepted_at,
 }
 ]]></ee:set-variable>
 			</ee:variables>
