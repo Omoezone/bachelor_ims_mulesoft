@@ -1,0 +1,13 @@
+%dw 2.0
+
+type auto_5bcfe52c_898b_4bca_b96b_ddfe1bc75b53_Input_Payload = {|
+  name: String, 
+  price: Number, 
+  amount: Number, 
+  "type": String, 
+  width: Number, 
+  height: Number, 
+  color: String | Null, 
+  collectionId: Number
+|}
+

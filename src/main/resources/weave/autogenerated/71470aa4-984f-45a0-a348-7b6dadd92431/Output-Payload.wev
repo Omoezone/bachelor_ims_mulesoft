@@ -1,0 +1,13 @@
+%dw 2.0
+
+type auto_71470aa4_984f_45a0_a348_7b6dadd92431_Output_Payload = {
+  amount: Number, 
+  color: String | Null, 
+  price: Number, 
+  name: String, 
+  width: Number | Null, 
+  "type": String, 
+  height: Number | Null, 
+  _?: Any
+}
+

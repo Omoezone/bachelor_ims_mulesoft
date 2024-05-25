@@ -1,5 +1,160 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd"></mule>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="getAllItems" doc:id="145d3ef5-f013-4f75-b740-beeac4cb4a40" >
+		<db:select doc:name="Select" doc:id="c14d9a55-317d-44d1-9407-661253512f0c" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT * FROM items]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="3646c0e3-10af-461f-907a-c98351a7b152" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	itemId: payload01.item_id,
+	amount: payload01.amount,
+	color: payload01.color,
+	price: payload01.price,
+	name: payload01.name,
+	width: payload01.width,
+	height: payload01.height,
+	"type": payload01.height
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getSpecificItem" doc:id="06488a36-322b-46f3-b547-f7f6120528ed" >
+		<db:query-single doc:name="Query single" doc:id="d39411a3-7d71-41a3-81f1-a5b16aab82df" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT i.item_id, i.name, i.price, i.amount, i.type, i.width, i.height, i.color, i.collection_id
+FROM items i
+WHERE i.item_id = :ID]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{ID: vars.GetItemId}]]]></db:input-parameters>
+		</db:query-single>
+		<ee:transform doc:name="Transform Message" doc:id="25516dc5-fc52-48c9-9abf-4a37d15c2316" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	itemId: payload.item_id,
+	name: payload.name,
+	price: payload.price,
+	amount: payload.amount,
+	"type": payload.amount,
+	width: payload.width,
+	height: payload.height,
+	color: payload.color,
+	collectionId: payload.collection_id
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getAllItemsForSpecificUser" doc:id="7cd292f1-6573-47cb-956d-79c8fef85ae6" >
+		<db:select doc:name="Select" doc:id="488d7f11-3599-4956-8064-8ea3bc640584" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT i.*
+FROM ims.users u
+JOIN ims.collections c ON u.user_id = c.user_id
+JOIN ims.items i ON c.collection_id = i.collection_id
+WHERE u.user_id = :UID;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{UID: vars.userId}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="8058d92c-3633-44d1-a89f-555d12fc73f3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map(payload01, index) -> {
+	itemId: payload01.item_id,
+	name: payload01.name,
+	price: payload01.price,
+	amount: payload01.amount,
+	"type": payload01."type",
+	width: payload01.width,
+	height: payload01.height,
+	color: payload01.color
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="createNewItem" doc:id="71470aa4-984f-45a0-a348-7b6dadd92431" >
+		<db:stored-procedure doc:name="Stored procedure" doc:id="d219364d-1376-42b2-a2de-4b72c699f1e3" config-ref="Database_Config" >
+			<db:sql ><![CDATA[CALL AddItemAndReturn(:NAME, :PRICE, :AMOUNT, :TYPE, :WIDTH, :HEIGHT, :COLOR, :CID)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	NAME: payload.name, PRICE: payload.price, AMOUNT: payload.amount, TYPE: payload."type",
+	WIDTH: payload.width, HEIGHT: payload.height, COLOR: payload.color, CID: vars.PostItem
+}]]]></db:input-parameters>
+		</db:stored-procedure>
+		<ee:transform doc:name="Transform Message1" doc:id="11b51d3e-ea31-4cb2-a591-4a5426ca30f2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	itemId: payload[0].item_id[0],
+	name: payload[0].name[0],
+	price: payload[0].price[0],
+	"type": payload[0]."type"[0],
+	width: payload[0].width[0] default null,
+	height: payload[0].height[0] default null,
+	color: payload[0].color[0] default "None",
+	collectionId: payload[0].collection_id[0]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="updateItem" doc:id="5bcfe52c-898b-4bca-b96b-ddfe1bc75b53" >
+		<db:update doc:name="Update an existing item" doc:id="960543bf-4260-4493-9abd-b0374d556589" config-ref="Database_Config" >
+			<db:sql ><![CDATA[UPDATE items
+SET name = :NAME, 
+    price = :PRICE, 
+    amount = :AMOUNT, 
+    type = :TYPE, 
+    width = :WIDTH, 
+    height = :HEIGHT, 
+    color = :COLOR, 
+    collection_id = :COLLID
+WHERE item_id = :ITEMID;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	NAME: payload.name,
+	PRICE: payload.price,
+	AMOUNT: payload.amount,
+	TYPE: payload."type",
+	WIDTH: payload.width,
+	HEIGHT: payload.height,
+	COLOR: payload.color,
+	COLLID: payload.collectionId,
+	ITEMID: vars.updateItemId
+}]]]></db:input-parameters>
+		</db:update>
+		<ee:transform doc:name="Transform Message" doc:id="7fcea04b-dd51-471c-a6ba-f3b9d5c85891" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Item successfully updated"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="deleteItem" doc:id="d2bd3ac6-add3-412e-b26d-1246c156dc8b" >
+		<db:delete doc:name="Delete an item" doc:id="b387f3fd-07c2-4b35-b2b5-54e9d68bece5" config-ref="Database_Config" >
+			<db:sql ><![CDATA[DELETE FROM items WHERE item_id = :ITEMID]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{ITEMID: vars.deleteItemId}]]]></db:input-parameters>
+		</db:delete>
+		<ee:transform doc:name="Transform Message" doc:id="fa6b54cc-4a8a-47d5-a9f1-0c8ee85dda86" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Item successfully deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

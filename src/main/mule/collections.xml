@@ -116,5 +116,15 @@ output application/json
 WHERE collection_id = :COLID]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{COLID: vars.deleteCollectionId}]]]></db:input-parameters>
 		</db:delete>
+		<ee:transform doc:name="Transform Message" doc:id="dc3e7efc-db8c-4a94-815d-27e29b01f0eb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Collection successfully deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 	</flow>
 </mule>

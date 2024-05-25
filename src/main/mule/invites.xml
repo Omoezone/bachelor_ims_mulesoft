@@ -6,7 +6,6 @@
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<flow name="getUserInvites" doc:id="30ad7ea3-7b36-447c-8ecd-ef32e8465e39" >
-		<set-variable value="#[attributes.uriParams.'email']" doc:name="Set Variable" doc:id="c810fd85-7c90-4177-b957-4cc6437fc51e" variableName="userEmail" />
 		<db:select doc:name="Select" doc:id="ffb7f7f5-6b40-465b-9a4b-845ff777205b" config-ref="Database_Config" >
 			<db:sql ><![CDATA[SELECT * FROM group_invitation gi
 WHERE gi.reciever_email = :EMAIL 
@@ -31,10 +30,8 @@ payload map(invites) -> {
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<remove-variable doc:name="Remove Variable" doc:id="3d6f6dfc-606b-426e-804d-4667062489d7" variableName="userEmail" />
 	</flow>
 	<flow name="sendInvite" doc:id="2eb0c703-d0f8-4a10-8e05-7dfa8a367440" >
-		<set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="8048a120-335a-4894-bb37-68eb2bb0b7cb" variableName="userId" />
 		<db:stored-procedure doc:name="Stored procedure" doc:id="99eb3cdb-139a-4240-9f0a-e997ecea17cd" config-ref="Database_Config" >
 			<error-mapping sourceType="DB:QUERY_EXECUTION" targetType="APP:NO_EMAIL" />
 			<db:sql ><![CDATA[CALL SendGroupInvitation(:GID, :UID, :EMAIL)]]></db:sql>
@@ -54,10 +51,8 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<remove-variable doc:name="Remove Variable" doc:id="259b0b1c-1b6c-4f5e-a5e4-80dc06ee92cf" variableName="userId" />
 	</flow>
 	<flow name="acceptInvite" doc:id="64771f07-9193-4d70-b0fc-94cac57c56d6" >
-		<set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="e6d7e6fc-d3f9-434d-8e5a-b4d15d369ad9" variableName="userId" />
 		<db:stored-procedure doc:name="Stored procedure" doc:id="78bce038-62ff-4b15-91d1-bc6265dce39c" config-ref="Database_Config" >
 			<db:sql ><![CDATA[CALL AcceptInvitation(:TOKEN, :UID)]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
@@ -76,10 +71,8 @@ payload.resultSet1 map ((item, index) -> {
 })]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<remove-variable doc:name="Remove Variable" doc:id="d600fa9a-9c05-4815-ad1b-999d791eb3d8" variableName="userId" />
 	</flow>
 	<flow name="denyInvite" doc:id="767b4ee6-59fe-4e3b-a3a7-8896c285c6cc" >
-		<set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="c2ef8316-1373-4f31-abd6-c6325a07a240" variableName="userId"/>
 		<db:update doc:name="Update" doc:id="76ad7f3b-a94b-49fe-861e-fabb6d339c8c" config-ref="Database_Config">
 			<db:sql ><![CDATA[UPDATE group_invitation gi
 SET gi.changed_at = now(), gi.denied = true
@@ -88,6 +81,15 @@ WHERE invitation_id = :INID]]></db:sql>
 	INID: payload
 }]]]></db:input-parameters>
 		</db:update>
-		<remove-variable doc:name="Remove Variable" doc:id="c95f4663-0b87-458e-b111-4db5b380093c" variableName="userId"/>
+		<ee:transform doc:name="Transform Message" doc:id="529bc02b-b6b0-46fc-b34e-0b41a13c32c1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Successfully denied a group invitation"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 	</flow>
 </mule>
