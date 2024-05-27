@@ -3,7 +3,7 @@
     <http:listener-config name="ims_specs-httpListenerConfig">
         <http:listener-connection host="${api.host}" port="${http.port}" />
     </http:listener-config>
-    <apikit:config name="ims_specs-config" api="resource::a1600366-34e7-452e-a23d-daddabc1e9c9:ims_specs:1.0.24:raml:zip:ims_specs.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <apikit:config name="ims_specs-config" api="resource::a1600366-34e7-452e-a23d-daddabc1e9c9:ims_specs:1.0.25:raml:zip:ims_specs.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
     <flow name="ims_specs-main">
         <http:listener config-ref="ims_specs-httpListenerConfig" path="/api/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
@@ -222,7 +222,38 @@ output application/json
         <remove-variable doc:name="Remove Variable" doc:id="b586a76a-239f-4897-b69f-219e0b5d098a" variableName="hashedPassword" />
         <logger level="INFO" doc:name="Logger" doc:id="d8557ba6-5fb8-499b-aa6b-95d63ffda46e" message="Successfully created user" />
     </flow>
-    <flow name="put:\users\(userId):application\json:ims_specs-config">
+    <flow name="post:\users\(userId)\group:application\json:ims_specs-config">
+        <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="0800f9d1-58e0-45fe-9f1a-ccdd490cdf89" variableName="userId"/>
+		<db:stored-procedure doc:name="Stored procedure" doc:id="4f489e44-df7a-4016-8f1d-22202b48ded4" config-ref="Database_Config">
+			<db:sql ><![CDATA[CALL CreateGroupAndAssignToUser(:UID, :GNAME)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	UID: vars.userId,
+	GNAME: payload.groupName
+}]]]></db:input-parameters>
+		</db:stored-procedure>
+		<db:select doc:name="Select" doc:id="82f0865b-72e7-469a-8767-2d66fecf963f" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT g.group_id, g.group_name
+    FROM `ims`.`group` g
+    JOIN `ims`.`user_group` ug ON g.group_id = ug.group_id
+    WHERE ug.user_id = :UID;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	UID: vars.userId
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="92ff2016-a4e1-49ad-9fce-61f072b609cf" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map {
+    groupId: $.group_id,
+    groupName: $.group_name
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<remove-variable doc:name="Remove Variable" doc:id="e457e948-fab8-4e92-9794-7d5b493df0ff" variableName="userId"/>
+    </flow>
+	<flow name="put:\users\(userId):application\json:ims_specs-config">
         <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="20eb8295-7ce8-4bfa-92bb-4ce883df46d0" variableName="updateUserId" />
         <ee:transform doc:name="Transform Message1" doc:id="8b3fa88a-4596-4157-9b9a-98a7c1e99806">
             <ee:message>
@@ -277,7 +308,7 @@ output application/json
         <remove-variable doc:name="Remove Variable" doc:id="fe0f1e88-c051-48fb-9118-7ab3170c6d76" variableName="updateUserId" />
         <logger level="INFO" doc:name="Logger" doc:id="b039030f-12c8-4bc2-8e4a-9e24b40ee4d5" message="Successfully updated user" />
     </flow>
-    <flow name="delete:\users\(userId):ims_specs-config">
+	<flow name="delete:\users\(userId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="b18df9ff-fa45-4602-89d9-60052f1abf36" variableName="deleteUserId" />
         <try doc:name="Try" doc:id="fd4492cc-9aa9-4c91-b9db-6fc4e4898fa1">
             <db:delete doc:name="Delete an user" doc:id="098effcf-9125-4f6c-bc84-17b1741290a6" config-ref="Database_Config">
@@ -301,7 +332,7 @@ output application/json
     <flow name="get:\items:ims_specs-config">
         <flow-ref doc:name="GetAllItems" doc:id="f91b3a01-fe61-42b3-92fd-16f00cc4c384" name="getAllItems" />
     </flow>
-    <flow name="get:\items\(itemId):ims_specs-config">
+	<flow name="get:\items\(itemId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'itemId']" doc:name="Set Variable" doc:id="0605a2c4-4e31-46e6-b669-b8f5560cb12a" variableName="GetItemId" />
         <flow-ref doc:name="getSpecifikItem" doc:id="8632ce3b-ce94-4c2a-b903-bd8a08c68158" name="getSpecificItem" />
         <remove-variable doc:name="Remove Variable" doc:id="38e340bc-4fc6-42d0-87ae-b4989d950ff7" variableName="GetItemId" />
@@ -311,7 +342,7 @@ output application/json
         <flow-ref doc:name="getAllItemUser" doc:id="a0c1d770-46f5-4de5-8391-b88c2ef056f9" name="getAllItemsForSpecificUser" />
         <remove-variable doc:name="Remove Variable" doc:id="3eb9906a-0985-4d41-9981-8ace48f667ec" variableName="userId" />
     </flow>
-    <flow name="post:\items:application\json:ims_specs-config">
+	<flow name="post:\items:application\json:ims_specs-config">
         <set-variable value="#[attributes.queryParams.'collectionId']" doc:name="Set Variable" doc:id="6557c649-ad76-49aa-9057-93553693a9d4" variableName="PostItem" />
         <ee:transform doc:name="Transform Message" doc:id="05ccc646-25e9-4197-87da-5b5507f891a7">
             <ee:message>
@@ -354,12 +385,12 @@ output application/java
         <flow-ref doc:name="updateItem" doc:id="771b5bed-2350-4c05-9333-1746c04c9e75" name="updateItem" />
         <remove-variable doc:name="Remove Variable" doc:id="d761e042-a40e-4012-a4ce-e750f627755e" variableName="updateItemId" />
     </flow>
-    <flow name="delete:\items\(itemId):ims_specs-config">
+	<flow name="delete:\items\(itemId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'itemId']" doc:name="Set Variable" doc:id="da8cf4b8-d069-431f-9744-8d4b6908e822" variableName="deleteItemId" />
         <flow-ref doc:name="deleteItem" doc:id="df397585-805b-40cc-8901-6d257ffc3497" name="deleteItem" />
         <remove-variable doc:name="Remove Variable" doc:id="60a6f99b-69df-4ce5-b446-9efd93fdf92d" variableName="deleteItemId" />
     </flow>
-    <flow name="get:\collections:ims_specs-config">
+	<flow name="get:\collections:ims_specs-config">
         <db:select doc:name="Select all collections" doc:id="c06b6e67-f91d-4aab-9df6-edfe088707bf" config-ref="Database_Config">
             <db:sql><![CDATA[SELECT * FROM collections]]></db:sql>
         </db:select>
@@ -375,7 +406,7 @@ payload map ( payload01 , indexOfPayload01 ) -> {
             </ee:message>
         </ee:transform>
     </flow>
-    <flow name="get:\collections\(collectionId):ims_specs-config">
+	<flow name="get:\collections\(collectionId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="ceda5ca4-d6b7-4b01-bed4-ec239756da20" variableName="getSingleCollection" />
         <try doc:name="Try" doc:id="775f3be8-fb17-4ea4-8254-04622d7e9901">
             <db:query-single doc:name="Query single collection" doc:id="3251b474-866e-41be-ac13-042bafb1516e" config-ref="Database_Config">
@@ -397,25 +428,25 @@ output application/json
         </try>
         <remove-variable doc:name="Remove Variable" doc:id="28241db2-50e5-4943-b8e8-e11557058c4e" variableName="getSingleCollection" />
     </flow>
-    <flow name="get:\collections\(collectionId)\items:ims_specs-config">
+	<flow name="get:\collections\(collectionId)\items:ims_specs-config">
         <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="dbcc03b0-f1ab-4f56-9e67-405ac4386094" variableName="getCollectionWithItems" />
         <flow-ref doc:name="Flow Reference" doc:id="d8d8ad70-83eb-4630-b6e2-bd25f5df655f" name="getSpecificCollectionWithItems" />
         <remove-variable doc:name="Remove Variable" doc:id="0a7c80c7-b037-44e4-b802-5791dc61cf64" variableName="getCollectionWithItems" />
     </flow>
-    <flow name="post:\collections:application\json:ims_specs-config">
+	<flow name="post:\collections:application\json:ims_specs-config">
         <flow-ref doc:name="Flow Reference" doc:id="d19b124c-9952-4d6e-a974-06dba8e5386f" name="createNewCollection" />
     </flow>
-    <flow name="delete:\collections\(collectionId):ims_specs-config">
+	<flow name="delete:\collections\(collectionId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="008be2e2-7146-4fe3-9fa1-059b5d1a94e5" variableName="deleteCollectionId" />
         <flow-ref doc:name="Flow Reference" doc:id="ffa8e738-9766-402a-b43c-c5cf52ebe55b" name="deleteSpecificCollection" />
         <remove-variable doc:name="Remove Variable" doc:id="2c2a7ddf-1228-4dd2-87e3-65d26588c01a" variableName="deleteCollectionId" />
     </flow>
-    <flow name="get:\users\(userId)\collections:ims_specs-config">
+	<flow name="get:\users\(userId)\collections:ims_specs-config">
         <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="f58ad909-3517-42b5-bf9b-b0a64a0897bc" variableName="userId" />
         <flow-ref doc:name="Flow Reference" doc:id="1094c200-1273-4ed0-9b72-fc2095559579" name="getAllCollectionForUser" />
         <remove-variable doc:name="Remove Variable" doc:id="117046b2-b19d-4186-807d-f04957d57139" variableName="userId" />
     </flow>
-    <flow name="post:\auth\login:application\json:ims_specs-config">
+	<flow name="post:\auth\login:application\json:ims_specs-config">
         <set-variable value="#[{ password: payload.password as String, email: payload.email as String }]" doc:name="Set Variable" doc:id="ee6bfb5c-59de-46cf-afc7-008f170d18e2" variableName="pp" />
         <flow-ref doc:name="Auth/verifyUser" doc:id="78ed8acb-61f2-459b-bad0-f3c94dc17292" name="verifyUser" />
         <flow-ref doc:name="Auth/ createJwT" doc:id="2997c477-3428-4360-b99c-37a0dbefb4ed" name="createJwtToken" />
@@ -433,7 +464,7 @@ output application/json
         <logger level="INFO" doc:name="Logger" doc:id="1470ffe3-838c-4ac4-8e8d-c11184b43cb9" />
         <remove-variable doc:name="Remove Variable" doc:id="5614cd9d-b2a9-4111-8ca0-cce1354ac22c" variableName="pp" />
     </flow>
-    <flow name="post:\auth\verify:application\json:ims_specs-config">
+	<flow name="post:\auth\verify:application\json:ims_specs-config">
         <ee:transform doc:name="Transform Message" doc:id="de7f1df1-d56e-47c2-b78e-b2e7b8127744">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
@@ -455,24 +486,24 @@ payload]]></ee:set-payload>
         </ee:transform>
         <logger level="INFO" doc:name="Logger" doc:id="fc147d34-5165-4c6d-8aa6-5b328c0d2949" />
     </flow>
-    <flow name="post:\users\(userId)\sendInvite:application\json:ims_specs-config">
+	<flow name="post:\users\(userId)\sendInvite:application\json:ims_specs-config">
         <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="3926910a-5cb7-4ba5-addf-03218d608cd1" variableName="userId" />
-		<flow-ref doc:name="Flow Reference" doc:id="0008cbb8-793e-47e3-89f4-029484bc5444" name="sendInvite" />
-		<remove-variable doc:name="Remove Variable" doc:id="b15f6c8c-974c-4d6e-98da-e43e94107bad" variableName="userId" />
+        <flow-ref doc:name="Flow Reference" doc:id="0008cbb8-793e-47e3-89f4-029484bc5444" name="sendInvite" />
+        <remove-variable doc:name="Remove Variable" doc:id="b15f6c8c-974c-4d6e-98da-e43e94107bad" variableName="userId" />
     </flow>
-    <flow name="get:\users\(email)\invitations:ims_specs-config">
-		<set-variable value="#[attributes.uriParams.'email']" doc:name="Set Variable" doc:id="6eeee4cc-ff89-48a2-bbcc-eecedf0bedb4" variableName="userEmail" />
-		<flow-ref doc:name="Flow Reference" doc:id="40d4060b-3b44-43cd-9c78-ba2671e84e63" name="getUserInvites" />
-		<remove-variable doc:name="Remove Variable" doc:id="4d386740-dc23-40ae-819a-638b952363bb" variableName="userEmail" />
+	<flow name="get:\users\(email)\invitations:ims_specs-config">
+        <set-variable value="#[attributes.uriParams.'email']" doc:name="Set Variable" doc:id="6eeee4cc-ff89-48a2-bbcc-eecedf0bedb4" variableName="userEmail" />
+        <flow-ref doc:name="Flow Reference" doc:id="40d4060b-3b44-43cd-9c78-ba2671e84e63" name="getUserInvites" />
+        <remove-variable doc:name="Remove Variable" doc:id="4d386740-dc23-40ae-819a-638b952363bb" variableName="userEmail" />
     </flow>
-    <flow name="put:\users\(userId)\acceptInvite:application\json:ims_specs-config">
+	<flow name="put:\users\(userId)\acceptInvite:application\json:ims_specs-config">
         <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="aea96777-a98a-447c-a751-8fddbbb099a9" variableName="userId" />
-		<flow-ref doc:name="Flow Reference" doc:id="fc145084-1287-40d9-b525-03fe5070fa77" name="acceptInvite" />
-		<remove-variable doc:name="Remove Variable" doc:id="7f0bc257-18f5-4823-b54f-6195588d1fea" variableName="userId" />
+        <flow-ref doc:name="Flow Reference" doc:id="fc145084-1287-40d9-b525-03fe5070fa77" name="acceptInvite" />
+        <remove-variable doc:name="Remove Variable" doc:id="7f0bc257-18f5-4823-b54f-6195588d1fea" variableName="userId" />
     </flow>
-    <flow name="patch:\users\(userId)\denyInvite:application\json:ims_specs-config">
+	<flow name="patch:\users\(userId)\denyInvite:application\json:ims_specs-config">
         <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="0468a34d-e157-4b11-9308-2e60245c4415" variableName="userId" />
-		<flow-ref doc:name="Flow Reference" doc:id="c8c9485d-a324-4446-a9cf-0574bca0f5be" name="denyInvite" />
-		<remove-variable doc:name="Remove Variable" doc:id="bf4f4c54-ca84-4c5b-9166-f15af73cc218" variableName="userId" />
+        <flow-ref doc:name="Flow Reference" doc:id="c8c9485d-a324-4446-a9cf-0574bca0f5be" name="denyInvite" />
+        <remove-variable doc:name="Remove Variable" doc:id="bf4f4c54-ca84-4c5b-9166-f15af73cc218" variableName="userId" />
     </flow>
 </mule>

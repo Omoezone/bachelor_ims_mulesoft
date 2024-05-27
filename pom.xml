@@ -170,7 +170,7 @@
 		<dependency>
 			<groupId>a1600366-34e7-452e-a23d-daddabc1e9c9</groupId>
 			<artifactId>ims_specs</artifactId>
-			<version>1.0.24</version>
+			<version>1.0.25</version>
 			<classifier>raml</classifier>
 			<type>zip</type>
 		</dependency>
