@@ -143,7 +143,6 @@ payload map ( payload01 , indexOfPayload01 ) -> {
 }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-        <logger level="INFO" doc:name="Log select query response" doc:id="c754b5ce-7328-43c8-815f-be7d2ac41348" message="#[payload]" />
     </flow>
     <flow name="get:\users\(userId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="5cb33924-5692-4d9e-87f3-b178c290944b" variableName="getOneUser" />

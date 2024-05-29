@@ -47,7 +47,7 @@ payload map(payload01, index) -> {
 	</flow>
 	<flow name="getSpecificCollectionWithItems" doc:id="181b434a-a096-46dc-bf05-3a7e40ac8565" >
 		<db:select doc:name="Select collection with items" doc:id="63fa8de5-a235-46b2-8762-4661423b8ad6" config-ref="Database_Config" >
-			<db:sql ><![CDATA[SELECT c.collection_id, i.item_id, i.name, i.price, i.amount, i.type, i.width, i.height, i.color
+			<db:sql ><![CDATA[SELECT c.collection_id, c.name as CollectionName, i.item_id, i.name, i.price, i.amount, i.type, i.width, i.height, i.color
 FROM ims.collections AS c
 JOIN ims.items AS i ON c.collection_id = i.collection_id
 WHERE c.collection_id = :COLID;]]></db:sql>
@@ -60,6 +60,7 @@ output application/json
 ---
 {
 	collectionId: vars.getCollectionWithItems,
+	collectionName: payload.collectionName,
 	items: payload map {
 		itemId: $.item_id,
 		name: $.name,
