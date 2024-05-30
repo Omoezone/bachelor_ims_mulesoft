@@ -1,5 +1,194 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd"></mule>
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
+	<flow name="getAllUsers" doc:id="79e3e70c-2329-41e7-9029-b23b5b40ee90" >
+		<db:select doc:name="Select" doc:id="2dbaec0e-67a7-429b-94b7-a54ffcad190d" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT * FROM ims.users]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="31c51c8f-3d54-43e8-8493-281852818d06" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	userId: payload01.user_id as Number,
+	firstName: payload01.first_name,
+	lastName: payload01.last_name,
+	email: payload01.email,
+	password: payload01.password,
+	(age: payload01.age as Number) if (payload01.age != null),
+	gender: payload01.gender
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getSpecificUser" doc:id="89be4f5b-b527-472b-94a4-ea21d092228d" >
+		<db:query-single doc:name="Query single" doc:id="dab977c7-6228-48c5-b286-61e552bd8efd" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT 	
+u.user_id, u.first_name, u.last_name, u.email, u.password, u.age, u.gender
+FROM users u
+WHERE u.user_id = :ID]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{ID: vars.getOneUser}]]]></db:input-parameters>
+		</db:query-single>
+		<ee:transform doc:name="Transform Message" doc:id="fa458876-b138-4b9b-a4d3-75715521e5d8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	userId: payload.user_id as Number,
+	firstName: payload.first_name,
+	lastName: payload.last_name,
+	email: payload.email,
+	password: payload.password,
+	(age: payload.age as Number) if (payload.age != null),
+	gender: payload.gender
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="createNewUser" doc:id="b431b0c7-3a79-4db8-a98f-f44b89ff2a00" >
+		<java:invoke-static method="hashPassword(java.lang.String)" doc:name="Invoke static" doc:id="8212abb7-3c16-4e08-b39d-525080db2190" class="security.PasswordHasher" target="hashedPassword" >
+			<java:args ><![CDATA[#[arg0: payload.password]]]></java:args>
+		</java:invoke-static>
+		<ee:transform doc:name="Transform Message" doc:id="dabd97e8-ac3e-403b-a729-01ceb92cf3c7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  firstName: payload.firstName,
+  lastName: payload.lastName,
+  email: payload.email,
+  password: vars.hashedPassword,
+  age: payload.age as Number,
+  gender: payload.gender default null
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:stored-procedure doc:name="Stored procedure" doc:id="16b369c8-9771-4666-a90f-5c33be1db2f8" config-ref="Database_Config" >
+			<db:sql ><![CDATA[CALL RegisterAndDefaultGroup(
+:FIRSTNAME, :LASTNAME, :EMAIL, :PASSWORD, :AGE, :GENDER
+)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	FIRSTNAME: payload.firstName,
+	LASTNAME: payload.lastName,
+	EMAIL: payload.email, 
+	PASSWORD: vars.hashedPassword,
+	AGE: payload.age,
+	GENDER: payload.gender
+}]]]></db:input-parameters>
+		</db:stored-procedure>
+		<ee:transform doc:name="Transform Message1" doc:id="71da3d17-39d8-49c5-9b93-521f7f15bd9e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Successfully created new user"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<remove-variable doc:name="Remove Variable" doc:id="fb9a0a8f-a5c0-4a80-b9b5-10d46f127675" variableName="hashedPassword" />
+	</flow>
+	<flow name="createNewGroup" doc:id="2091a333-7abc-4f4d-a3d1-e1400fefb9c9" >
+		<db:stored-procedure doc:name="Stored procedure" doc:id="b0048cd6-17c7-44b5-bd3a-a18456b95af6" config-ref="Database_Config" >
+			<db:sql ><![CDATA[CALL CreateGroupAndAssignToUser(:UID, :GNAME)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	UID: vars.userId,
+	GNAME: payload.groupName
+}]]]></db:input-parameters>
+		</db:stored-procedure>
+		<db:select doc:name="Select" doc:id="4a1f32dc-c4a4-4479-8b31-146b8924801e" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT g.group_id, g.group_name
+    FROM `ims`.`group` g
+    JOIN `ims`.`user_group` ug ON g.group_id = ug.group_id
+    WHERE ug.user_id = :UID;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	UID: vars.userId
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="56a21a8e-5d67-41c0-8282-2fac5f21b44f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map {
+    groupId: $.group_id,
+    groupName: $.group_name
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="updateUser" doc:id="f3a9675f-9e21-4e7c-8b74-b6594dc317e4" >
+		<ee:transform doc:name="Transform Message" doc:id="1a63786e-3211-4ffb-a0f2-65d1a9145abe" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+    email: payload.email,
+    password: payload.password,
+    age: payload.age as Number,
+    gender: payload.gender as String default null
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<java:invoke-static method="hashPassword(java.lang.String)" doc:name="Invoke static" doc:id="f8ea270a-9343-46f9-9419-c8afee475863" class="security.PasswordHasher" target="hashedPassword" >
+			<java:args ><![CDATA[#[arg0: payload.password]]]></java:args>
+		</java:invoke-static>
+		<db:update doc:name="Update an existing user" doc:id="804e3ec6-bbe3-47c7-8c9f-37e11a96a15d" config-ref="Database_Config" >
+			<db:sql ><![CDATA[UPDATE `ims`.`users`
+SET
+    `first_name` = :firstName,
+    `last_name` = :lastName,
+    `email` = :email,
+    `password` = :password,
+    `age` = :age,
+    `gender` = :gender
+WHERE `user_id` = :userId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	userId: vars.updateUserId,
+	firstName: payload.firstName,
+	lastName: payload.lastName,
+	email: payload.email,
+	password: vars.hashedPassword,
+	age: payload.age,
+	gender: payload.gender
+}]]]></db:input-parameters>
+		</db:update>
+		<ee:transform doc:name="Transform Message1" doc:id="018016d3-1a40-4890-b0c0-b43879e52f05" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "User successfully updated"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="deleteUser" doc:id="a3850943-9893-4aa7-9897-dedc4ab6bb6b" >
+		<db:delete doc:name="Delete an user" doc:id="9ac42ac0-5712-4290-a7c0-b3116fc1d6fa" config-ref="Database_Config" >
+			<db:sql ><![CDATA[DELETE FROM users WHERE user_id = :USER_ID]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{USER_ID: vars.deleteUserId}]]]></db:input-parameters>
+		</db:delete>
+		<ee:transform doc:name="Transform Message" doc:id="6bc4b486-37ac-4c16-8704-c0ed0430c4c2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "User successfully deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

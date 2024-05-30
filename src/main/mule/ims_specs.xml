@@ -124,209 +124,30 @@ output application/json
         </error-handler>
     </flow>
     <flow name="get:\users:ims_specs-config">
-        <db:select doc:name="Select" doc:id="826e227e-77bf-44e1-8b91-db77e63efbf7" config-ref="Database_Config">
-            <db:sql><![CDATA[SELECT * FROM ims.users]]></db:sql>
-        </db:select>
-        <ee:transform doc:name="Transform Message" doc:id="e9d80ee4-be20-430d-bf9f-9897d980d085">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-payload map ( payload01 , indexOfPayload01 ) -> {
-	userId: payload01.user_id as Number,
-	firstName: payload01.first_name,
-	lastName: payload01.last_name,
-	email: payload01.email,
-	password: payload01.password,
-	(age: payload01.age as Number) if (payload01.age != null),
-	gender: payload01.gender
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
+		<flow-ref doc:name="getAllUsers" doc:id="0c4891a7-8ea4-45bb-80e1-6c48d2274fa1" name="getAllUsers"/>
     </flow>
     <flow name="get:\users\(userId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="5cb33924-5692-4d9e-87f3-b178c290944b" variableName="getOneUser" />
-        <try doc:name="Try" doc:id="41ecfad8-6e4d-463e-9e9a-3c2cf53773d7">
-            <db:query-single doc:name="Query single" doc:id="c37b68b7-15db-4b54-921a-c1e2ddf2701b" config-ref="Database_Config">
-                <db:sql><![CDATA[SELECT 	
-u.user_id, u.first_name, u.last_name, u.email, u.password, u.age, u.gender
-FROM users u
-WHERE u.user_id = :ID]]></db:sql>
-                <db:input-parameters><![CDATA[#[{ID: vars.getOneUser}]]]></db:input-parameters>
-            </db:query-single>
-            <ee:transform doc:name="Transform Message" doc:id="cf87f228-f3a1-40c3-b398-ff8bbcd15f3e">
-                <ee:message>
-                    <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-	userId: payload.user_id as Number,
-	firstName: payload.first_name,
-	lastName: payload.last_name,
-	email: payload.email,
-	password: payload.password,
-	(age: payload.age as Number) if (payload.age != null),
-	gender: payload.gender
-}]]></ee:set-payload>
-                </ee:message>
-            </ee:transform>
-        </try>
-        <remove-variable doc:name="Remove Variable" doc:id="4ce7b910-5af8-4194-956a-f37ac49c1d80" variableName="getOneUser" />
-        <logger level="INFO" doc:name="Logger" doc:id="3d4ce615-30ce-4c89-b026-f80f36858203" message="#[payload]" />
+        <flow-ref doc:name="getSpecificUser" doc:id="762878ce-71ec-4847-8908-184acfff759c" name="getSpecificUser"/>
+		<remove-variable doc:name="Remove Variable" doc:id="4ce7b910-5af8-4194-956a-f37ac49c1d80" variableName="getOneUser" />
     </flow>
     <flow name="post:\users:application\json:ims_specs-config">
-        <java:invoke-static doc:name="Invoke static" doc:id="7efd98ca-09eb-4503-88c6-40b93badd31b" class="security.PasswordHasher" method="hashPassword(java.lang.String)" target="hashedPassword">
-            <java:args><![CDATA[#[arg0: payload.password]]]></java:args>
-        </java:invoke-static>
-        <ee:transform doc:name="Transform Message" doc:id="c2ae685a-9f83-44ae-a40b-fe144372d144">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-  firstName: payload.firstName,
-  lastName: payload.lastName,
-  email: payload.email,
-  password: vars.hashedPassword,
-  age: payload.age as Number,
-  gender: payload.gender default null
-} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
-        <try doc:name="Try" doc:id="af31639c-152a-446e-bb0d-5a8912eee2bf">
-            <db:stored-procedure doc:name="Stored procedure" doc:id="5d4a687f-4b45-467c-b248-1bc532ef610f" config-ref="Database_Config">
-                <db:sql><![CDATA[CALL RegisterAndDefaultGroup(
-:FIRSTNAME, :LASTNAME, :EMAIL, :PASSWORD, :AGE, :GENDER
-)]]></db:sql>
-                <db:input-parameters><![CDATA[#[{
-	FIRSTNAME: payload.firstName,
-	LASTNAME: payload.lastName,
-	EMAIL: payload.email, 
-	PASSWORD: vars.hashedPassword,
-	AGE: payload.age,
-	GENDER: payload.gender
-}]]]></db:input-parameters>
-            </db:stored-procedure>
-            <ee:transform doc:name="Transform Message" doc:id="00f54f62-3a3f-4103-b1c9-79ae19bfc661">
-                <ee:message>
-                    <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-	message: "Successfully created new user"
-}]]></ee:set-payload>
-                </ee:message>
-            </ee:transform>
-        </try>
-        <remove-variable doc:name="Remove Variable" doc:id="b586a76a-239f-4897-b69f-219e0b5d098a" variableName="hashedPassword" />
-        <logger level="INFO" doc:name="Logger" doc:id="d8557ba6-5fb8-499b-aa6b-95d63ffda46e" message="Successfully created user" />
+		<flow-ref doc:name="createNewUser" doc:id="45a153d9-9a76-458e-a1c1-e648c6c7c0ee" name="createNewUser"/>
     </flow>
     <flow name="post:\users\(userId)\group:application\json:ims_specs-config">
         <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="0800f9d1-58e0-45fe-9f1a-ccdd490cdf89" variableName="userId"/>
-		<db:stored-procedure doc:name="Stored procedure" doc:id="4f489e44-df7a-4016-8f1d-22202b48ded4" config-ref="Database_Config">
-			<db:sql ><![CDATA[CALL CreateGroupAndAssignToUser(:UID, :GNAME)]]></db:sql>
-			<db:input-parameters ><![CDATA[#[{
-	UID: vars.userId,
-	GNAME: payload.groupName
-}]]]></db:input-parameters>
-		</db:stored-procedure>
-		<db:select doc:name="Select" doc:id="82f0865b-72e7-469a-8767-2d66fecf963f" config-ref="Database_Config">
-			<db:sql ><![CDATA[SELECT g.group_id, g.group_name
-    FROM `ims`.`group` g
-    JOIN `ims`.`user_group` ug ON g.group_id = ug.group_id
-    WHERE ug.user_id = :UID;]]></db:sql>
-			<db:input-parameters ><![CDATA[#[{
-	UID: vars.userId
-}]]]></db:input-parameters>
-		</db:select>
-		<ee:transform doc:name="Transform Message" doc:id="92ff2016-a4e1-49ad-9fce-61f072b609cf" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload map {
-    groupId: $.group_id,
-    groupName: $.group_name
-}]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
+		<flow-ref doc:name="createNewGroup" doc:id="54e5f33d-48cb-418a-a7d4-5b537610d72b" name="createNewGroup"/>
 		<remove-variable doc:name="Remove Variable" doc:id="e457e948-fab8-4e92-9794-7d5b493df0ff" variableName="userId"/>
     </flow>
 	<flow name="put:\users\(userId):application\json:ims_specs-config">
         <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="20eb8295-7ce8-4bfa-92bb-4ce883df46d0" variableName="updateUserId" />
-        <ee:transform doc:name="Transform Message1" doc:id="8b3fa88a-4596-4157-9b9a-98a7c1e99806">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/java
----
-{
-    firstName: payload.firstName,
-    lastName: payload.lastName,
-    email: payload.email,
-    password: payload.password,
-    age: payload.age as Number,
-    gender: payload.gender as String default null
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
-        <java:invoke-static method="hashPassword(java.lang.String)" doc:name="Invoke static" doc:id="b2934ceb-a3f2-4a72-b6bd-9bdeb1ba37c8" class="security.PasswordHasher" target="hashedPassword">
-            <java:args><![CDATA[#[arg0: payload.password]]]></java:args>
-        </java:invoke-static>
-        <try doc:name="Try" doc:id="9510a0ad-5b1e-4eed-a19c-84d407af9e09">
-            <db:update doc:name="Update an existing user" doc:id="6d45d197-b16b-41d7-92b0-2f9326b35ea6" config-ref="Database_Config">
-                <db:sql><![CDATA[UPDATE `ims`.`users`
-SET
-    `first_name` = :firstName,
-    `last_name` = :lastName,
-    `email` = :email,
-    `password` = :password,
-    `age` = :age,
-    `gender` = :gender
-WHERE `user_id` = :userId]]></db:sql>
-                <db:input-parameters><![CDATA[#[{
-	userId: vars.updateUserId,
-	firstName: payload.firstName,
-	lastName: payload.lastName,
-	email: payload.email,
-	password: vars.hashedPassword,
-	age: payload.age,
-	gender: payload.gender
-}]]]></db:input-parameters>
-            </db:update>
-            <ee:transform doc:name="Transform Message" doc:id="8021c4a9-4552-4069-9979-d54a154fe414">
-                <ee:message>
-                    <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-	message: "User successfully updated"
-}]]></ee:set-payload>
-                </ee:message>
-            </ee:transform>
-        </try>
-        <remove-variable doc:name="Remove Variable" doc:id="fe0f1e88-c051-48fb-9118-7ab3170c6d76" variableName="updateUserId" />
-        <logger level="INFO" doc:name="Logger" doc:id="b039030f-12c8-4bc2-8e4a-9e24b40ee4d5" message="Successfully updated user" />
+        <flow-ref doc:name="updateUser" doc:id="4a84ab3a-005e-420b-ab85-5836a5681f03" name="updateUser"/>
+		<remove-variable doc:name="Remove Variable" doc:id="fe0f1e88-c051-48fb-9118-7ab3170c6d76" variableName="updateUserId" />
     </flow>
 	<flow name="delete:\users\(userId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'userId']" doc:name="Set Variable" doc:id="b18df9ff-fa45-4602-89d9-60052f1abf36" variableName="deleteUserId" />
-        <try doc:name="Try" doc:id="fd4492cc-9aa9-4c91-b9db-6fc4e4898fa1">
-            <db:delete doc:name="Delete an user" doc:id="098effcf-9125-4f6c-bc84-17b1741290a6" config-ref="Database_Config">
-                <db:sql><![CDATA[DELETE FROM users WHERE user_id = :USER_ID]]></db:sql>
-                <db:input-parameters><![CDATA[#[{USER_ID: vars.deleteUserId}]]]></db:input-parameters>
-            </db:delete>
-            <ee:transform doc:name="Transform Message" doc:id="c56e638d-03ad-459c-bfbf-14691f8419db">
-                <ee:message>
-                    <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-	message: "User successfully deleted"
-}]]></ee:set-payload>
-                </ee:message>
-            </ee:transform>
-        </try>
-        <remove-variable doc:name="Remove Variable" doc:id="56f93c4b-11db-4a3a-a952-ff668142e252" variableName="deleteUserId" />
-        <logger level="INFO" doc:name="Logger" doc:id="f2473eb0-72ae-4dec-8e92-29641facb259" message="delete:\users\(userId):bachelorims-config" />
+        <flow-ref doc:name="deleteUser" doc:id="f3103c3c-16b3-455d-afa1-f326b549a48f" name="deleteUser"/>
+		<remove-variable doc:name="Remove Variable" doc:id="56f93c4b-11db-4a3a-a952-ff668142e252" variableName="deleteUserId" />
     </flow>
     <flow name="get:\items:ims_specs-config">
         <flow-ref doc:name="GetAllItems" doc:id="f91b3a01-fe61-42b3-92fd-16f00cc4c384" name="getAllItems" />
@@ -390,42 +211,12 @@ output application/java
         <remove-variable doc:name="Remove Variable" doc:id="60a6f99b-69df-4ce5-b446-9efd93fdf92d" variableName="deleteItemId" />
     </flow>
 	<flow name="get:\collections:ims_specs-config">
-        <db:select doc:name="Select all collections" doc:id="c06b6e67-f91d-4aab-9df6-edfe088707bf" config-ref="Database_Config">
-            <db:sql><![CDATA[SELECT * FROM collections]]></db:sql>
-        </db:select>
-        <ee:transform doc:name="Transform Message" doc:id="e82bc418-b170-4ed2-89b1-eecf1d533c58">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-payload map ( payload01 , indexOfPayload01 ) -> {
-	collectionId: payload01.collection_id,
-	userId: payload01.user_id
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
+		<flow-ref doc:name="getAllCollections" doc:id="9b8401df-2cac-4397-b8b0-9bf15d1dc1cc" name="getAllCollections"/>
     </flow>
 	<flow name="get:\collections\(collectionId):ims_specs-config">
         <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="ceda5ca4-d6b7-4b01-bed4-ec239756da20" variableName="getSingleCollection" />
-        <try doc:name="Try" doc:id="775f3be8-fb17-4ea4-8254-04622d7e9901">
-            <db:query-single doc:name="Query single collection" doc:id="3251b474-866e-41be-ac13-042bafb1516e" config-ref="Database_Config">
-                <db:sql><![CDATA[SELECT * FROM collections
-WHERE collection_id = :CID]]></db:sql>
-                <db:input-parameters><![CDATA[#[{CID: vars.getSingleCollection}]]]></db:input-parameters>
-            </db:query-single>
-            <ee:transform doc:name="Transform Message" doc:id="7139686f-8ef4-4db8-84bb-ba85abba5cec">
-                <ee:message>
-                    <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-	collectionId: payload.collection_id,
-	userId: payload.user_id
-}]]></ee:set-payload>
-                </ee:message>
-            </ee:transform>
-        </try>
-        <remove-variable doc:name="Remove Variable" doc:id="28241db2-50e5-4943-b8e8-e11557058c4e" variableName="getSingleCollection" />
+        <flow-ref doc:name="getSpecificCollection" doc:id="56ab69ad-3a15-49d3-bf0a-14cbf866b508" name="getSpecificCollection"/>
+		<remove-variable doc:name="Remove Variable" doc:id="28241db2-50e5-4943-b8e8-e11557058c4e" variableName="getSingleCollection" />
     </flow>
 	<flow name="get:\collections\(collectionId)\items:ims_specs-config">
         <set-variable value="#[attributes.uriParams.'collectionId']" doc:name="Set Variable" doc:id="dbcc03b0-f1ab-4f56-9e67-405ac4386094" variableName="getCollectionWithItems" />

@@ -5,6 +5,40 @@
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="getAllCollections" doc:id="7c8e350b-f5ed-4977-a2d2-41d36cee8c5d" >
+		<db:select doc:name="Select all collections" doc:id="5ecceb7d-1dac-4e3e-880f-516742680b8e" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT * FROM collections]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="a0d2b1f1-0b1b-487f-ade1-23c9dfd438ce" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	collectionId: payload01.collection_id,
+	userId: payload01.user_id
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getSpecificCollection" doc:id="2c05c651-87a9-4e45-860f-6ef2763ff347" >
+		<db:query-single doc:name="Query single collection" doc:id="16fc7fe4-6e4e-45e8-ad3c-c9ccac786278" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT * FROM collections
+WHERE collection_id = :CID]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{CID: vars.getSingleCollection}]]]></db:input-parameters>
+		</db:query-single>
+		<ee:transform doc:name="Transform Message" doc:id="d2eda082-cf4b-48b9-aff2-72215e6216b6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	collectionId: payload.collection_id,
+	userId: payload.user_id
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
 	<flow name="getAllCollectionForUser" doc:id="3ad8faf5-dafd-42bd-9256-4c2a7db81cc4" >
 		<db:select doc:name="Select" doc:id="fa79a452-6df2-4f6f-9ca0-b892d5adcd60" config-ref="Database_Config" >
 			<db:sql ><![CDATA[SELECT 
