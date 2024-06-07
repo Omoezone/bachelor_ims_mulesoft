@@ -80,6 +80,14 @@ payload map(payload01, index) -> {
 		</ee:transform>
 	</flow>
 	<flow name="getSpecificCollectionWithItems" doc:id="181b434a-a096-46dc-bf05-3a7e40ac8565" >
+		<db:query-single doc:name="getCollName" doc:id="d750c5ec-f348-4d93-858c-68819330e172" config-ref="Database_Config" target="collName">
+			<db:sql ><![CDATA[SELECT c.name as CollectionName
+FROM ims.collections c
+WHERE c.collection_id = :CID;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	CID: vars.getCollectionWithItems
+}]]]></db:input-parameters>
+		</db:query-single>
 		<db:select doc:name="Select collection with items" doc:id="63fa8de5-a235-46b2-8762-4661423b8ad6" config-ref="Database_Config" >
 			<db:sql ><![CDATA[SELECT c.collection_id, c.name as CollectionName, i.item_id, i.name, i.price, i.amount, i.type, i.width, i.height, i.color
 FROM ims.collections AS c
@@ -94,7 +102,7 @@ output application/json
 ---
 {
 	collectionId: vars.getCollectionWithItems,
-	collectionName: payload.collectionName,
+	collectionName: vars.collName.CollectionName,
 	items: payload map {
 		itemId: $.item_id,
 		name: $.name,
@@ -108,6 +116,7 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
+		<remove-variable doc:name="Remove Variable" doc:id="9297bc9f-9aa3-4f0f-bc8b-1b7273b16410" variableName="collName"/>
 	</flow>
 	<flow name="createNewCollection" doc:id="0de052f3-a5b2-4085-aa07-8d5087aa5747" >
 		<ee:transform doc:name="Transform Message" doc:id="56fc227d-8fb7-492b-9a2e-75c36cb18183" >

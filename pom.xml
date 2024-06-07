@@ -168,9 +168,9 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>a1600366-34e7-452e-a23d-daddabc1e9c9</groupId>
+			<groupId>1d40ff95-4409-446f-973d-a1a23f61dafc</groupId>
 			<artifactId>ims_specs</artifactId>
-			<version>1.0.25</version>
+			<version>1.0.0</version>
 			<classifier>raml</classifier>
 			<type>zip</type>
 		</dependency>

@@ -96,6 +96,7 @@ output application/json
 {
 	itemId: payload[0].item_id[0],
 	name: payload[0].name[0],
+	amount: payload[0].amount[0],
 	price: payload[0].price[0],
 	"type": payload[0]."type"[0],
 	width: payload[0].width[0] default null,
