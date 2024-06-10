@@ -5,14 +5,15 @@ mysql:
   password: "root"
   database: "ims"
 
-http:  
+https:
   port: "8081"
   private.port: "8091"
-  
-https:
-  port: "8082"
-  private.port: "8092"
 
+anypoint:
+  cliend_id: "22d98ff166cd48158bbf32bb8df5b722"
+  client_secret: "22d98ff166cd48158bbf32bb8df5b722"
+  
 api:
+  id: "19591628" # AutoDiscovery
   host: "0.0.0.0"
   path: "/api/*"
